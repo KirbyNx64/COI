@@ -6,7 +6,7 @@ function Header() {
       <div className="container">
         <div className="header-content">
           <div className="logo">
-            <img src="/logo.webp" alt="Clínica Dental Dr. Cesar Vásquez" className="logo-image" />
+            <img src={`${import.meta.env.BASE_URL}logo.webp`} alt="Clínica Dental Dr. Cesar Vásquez" className="logo-image" />
           </div>
         </div>
       </div>
