@@ -1,0 +1,29 @@
+.header {
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: var(--spacing-md) 0;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo-image {
+    height: 50px;
+    width: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .logo-image {
+        height: 40px;
+    }
+}

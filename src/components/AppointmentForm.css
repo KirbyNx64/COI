@@ -1,0 +1,145 @@
+.appointment-form-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-header h2 {
+    font-size: 1.75rem;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.form-header p {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+}
+
+.appointment-form {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.form-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-section:last-of-type {
+    margin-bottom: var(--spacing-md);
+}
+
+.form-section h3 {
+    font-size: 1.125rem;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.form-row:has(.form-group:nth-child(2)) {
+    grid-template-columns: 1fr 1fr;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.required {
+    color: var(--color-error);
+}
+
+input.error,
+select.error,
+textarea.error {
+    border-color: var(--color-error);
+}
+
+.error-message {
+    color: var(--color-error);
+    font-size: 0.875rem;
+    margin-top: var(--spacing-xs);
+}
+
+.success-banner {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: var(--radius);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: #155724;
+}
+
+.success-banner svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.success-banner strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.success-banner p {
+    margin: 0;
+    color: #155724;
+    font-size: 0.875rem;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    margin-top: var(--spacing-sm);
+}
+
+.btn-submit svg {
+    width: 18px;
+    height: 18px;
+}
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .appointment-form {
+        padding: var(--spacing-md);
+    }
+
+    .form-row:has(.form-group:nth-child(2)) {
+        grid-template-columns: 1fr;
+    }
+}
