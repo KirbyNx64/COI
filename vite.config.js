@@ -5,4 +5,15 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/COI/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'pdf-utils': ['jspdf', 'html2canvas'],
+          'vendor': ['react', 'react-dom', 'react-router-dom']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  }
 })

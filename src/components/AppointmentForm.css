@@ -59,8 +59,23 @@
     flex-direction: column;
 }
 
+.form-group label {
+    color: var(--color-text-primary);
+    font-weight: 500;
+    margin-bottom: var(--spacing-xs);
+}
+
 .required {
     color: var(--color-error);
+}
+
+/* Make date input fully clickable */
+input[type="date"] {
+    cursor: pointer;
+}
+
+select.placeholder {
+    color: var(--color-text-secondary);
 }
 
 input.error,

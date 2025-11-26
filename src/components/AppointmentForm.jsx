@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './AppointmentForm.css';
 
 function AppointmentForm() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         motivo: '',
+        clinica: '',
         fecha: '',
         hora: '',
         notas: ''
@@ -11,22 +14,31 @@ function AppointmentForm() {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
 
     const motivosOptions = [
         { value: '', label: 'Selecciona un motivo' },
-        { value: 'dolor', label: 'Dolor dental' },
-        { value: 'limpieza', label: 'Limpieza dental' },
+        { value: 'evaluacion', label: 'Evaluación' },
         { value: 'control', label: 'Control de rutina' },
-        { value: 'ortodoncia', label: 'Ortodoncia' },
-        { value: 'estetica', label: 'Estética dental' },
-        { value: 'emergencia', label: 'Emergencia' },
+        { value: 'dolor', label: 'Dolor en alguna pieza' },
+        { value: 'endodoncia', label: 'Endodoncia' },
+        { value: 'limpieza', label: 'Limpieza' },
+        { value: 'rellenos', label: 'Rellenos' },
+        { value: 'cirugia', label: 'Cirugía de cordal' },
         { value: 'otro', label: 'Otro' }
+    ];
+
+    const clinicasOptions = [
+        { value: '', label: 'Selecciona una clínica' },
+        { value: 'santa-tecla', label: 'Santa Tecla' },
+        { value: 'soyapango', label: 'Soyapango' },
+        { value: 'san-martin', label: 'San Martín' },
+        { value: 'escalon', label: 'Escalón' },
+        { value: 'usulutan', label: 'Usulután' }
     ];
 
     const horariosDisponibles = [
         '7:30 AM', '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-        '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM'
+        '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM'
     ];
 
     const handleChange = (e) => {
@@ -53,16 +65,25 @@ function AppointmentForm() {
             newErrors.motivo = 'Por favor selecciona el motivo de la cita';
         }
 
+        if (!formData.clinica) {
+            newErrors.clinica = 'Por favor selecciona una clínica';
+        }
+
         if (!formData.fecha) {
             newErrors.fecha = 'Por favor selecciona una fecha';
         } else {
             // Validar que la fecha no sea en el pasado
-            const selectedDate = new Date(formData.fecha);
+            const selectedDate = new Date(formData.fecha + 'T00:00:00');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             if (selectedDate < today) {
                 newErrors.fecha = 'La fecha no puede ser en el pasado';
+            }
+
+            // Validar que no sea domingo (0 = domingo)
+            if (selectedDate.getDay() === 0) {
+                newErrors.fecha = 'No se pueden agendar citas los domingos';
             }
         }
 
@@ -89,18 +110,9 @@ function AppointmentForm() {
         setTimeout(() => {
             console.log('Datos de la cita:', formData);
             setIsSubmitting(false);
-            setSubmitSuccess(true);
 
-            // Resetear formulario después de 3 segundos
-            setTimeout(() => {
-                setFormData({
-                    motivo: '',
-                    fecha: '',
-                    hora: '',
-                    notas: ''
-                });
-                setSubmitSuccess(false);
-            }, 3000);
+            // Redirigir a la página de confirmación con los datos
+            navigate('/cita-confirmada', { state: { appointment: formData } });
         }, 1500);
     };
 
@@ -114,17 +126,7 @@ function AppointmentForm() {
                 <p>Completa el formulario y te notificaremos vía correo electrónico o celular para confirmar tu cita</p>
             </div>
 
-            {submitSuccess && (
-                <div className="success-banner fade-in">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <div>
-                        <strong>¡Cita agendada exitosamente!</strong>
-                        <p>Recibirás un correo de confirmación pronto.</p>
-                    </div>
-                </div>
-            )}
+
 
             <form onSubmit={handleSubmit} className="appointment-form" noValidate>
                 {/* Información de la Cita */}
@@ -141,7 +143,7 @@ function AppointmentForm() {
                                 name="motivo"
                                 value={formData.motivo}
                                 onChange={handleChange}
-                                className={errors.motivo ? 'error' : ''}
+                                className={`${errors.motivo ? 'error' : ''} ${!formData.motivo ? 'placeholder' : ''}`}
                             >
                                 {motivosOptions.map(option => (
                                     <option key={option.value} value={option.value}>
@@ -157,15 +159,47 @@ function AppointmentForm() {
 
                     <div className="form-row">
                         <div className="form-group">
+                            <label htmlFor="clinica">
+                                Clínica de preferencia <span className="required">*</span>
+                            </label>
+                            <select
+                                id="clinica"
+                                name="clinica"
+                                value={formData.clinica}
+                                onChange={handleChange}
+                                className={`${errors.clinica ? 'error' : ''} ${!formData.clinica ? 'placeholder' : ''}`}
+                            >
+                                {clinicasOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.clinica && (
+                                <span className="error-message">⚠ {errors.clinica}</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="form-row">
+                        <div className="form-group">
                             <label htmlFor="fecha">
                                 Fecha de la cita <span className="required">*</span>
                             </label>
                             <input
-                                type="date"
+                                type="text"
                                 id="fecha"
                                 name="fecha"
                                 value={formData.fecha}
                                 onChange={handleChange}
+                                onFocus={(e) => {
+                                    e.target.type = "date";
+                                    e.target.showPicker && e.target.showPicker();
+                                }}
+                                onBlur={(e) => {
+                                    if (!e.target.value) e.target.type = "text";
+                                }}
+                                placeholder="Selecciona una fecha"
                                 min={today}
                                 className={errors.fecha ? 'error' : ''}
                             />
@@ -183,7 +217,7 @@ function AppointmentForm() {
                                 name="hora"
                                 value={formData.hora}
                                 onChange={handleChange}
-                                className={errors.hora ? 'error' : ''}
+                                className={`${errors.hora ? 'error' : ''} ${!formData.hora ? 'placeholder' : ''}`}
                             >
                                 <option value="">Selecciona una hora</option>
                                 {horariosDisponibles.map(hora => (
