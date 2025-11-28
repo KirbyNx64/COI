@@ -1,8 +1,8 @@
 .footer {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    /* Solid color instead of gradient */
+    background: #1e293b;
     color: #e2e8f0;
     padding: 3rem 0 1rem;
-    margin-top: 4rem;
 }
 
 .footer-content {
@@ -120,7 +120,6 @@
 @media (max-width: 768px) {
     .footer {
         padding: 2rem 0 1rem;
-        margin-top: 3rem;
     }
 
     .footer-content {
@@ -160,7 +159,7 @@
 
 .social-link:hover {
     background: var(--primary-color);
-    transform: translateY(-2px);
+    /* Removed transform */
 }
 
 .social-link svg {

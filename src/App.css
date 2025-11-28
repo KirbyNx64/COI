@@ -6,12 +6,18 @@
 
 .main-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content {
+  flex: 1;
   padding: var(--spacing-xl) 0;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .main-content {
+  .page-content {
     padding: var(--spacing-lg) 0;
   }
 }

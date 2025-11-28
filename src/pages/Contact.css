@@ -161,10 +161,11 @@
     text-decoration: underline;
 }
 
-.address {
-    color: var(--text-secondary);
+.info-item .address {
+    color: rgba(108, 117, 125, 1.4);
     line-height: 1.6;
     margin: 0;
+    font-size: 1.0rem !important;
 }
 
 /* Responsive */

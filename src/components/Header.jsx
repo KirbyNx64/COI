@@ -1,9 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import './Header.css';
 
-function Header() {
+function Header({ onLogout, userData }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  const displayName = userData ? userData.nombres : 'Usuario';
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    if (isProfileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isProfileMenuOpen]);
 
   return (
     <header className="header">
@@ -30,12 +51,33 @@ function Header() {
               <Link to="/cita" className="nav-button" onClick={() => setIsMenuOpen(false)}>Cita</Link>
               <Link to="/contacto" className="nav-button" onClick={() => setIsMenuOpen(false)}>Contacto</Link>
             </nav>
-            <button className="profile-btn" aria-label="Perfil">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </button>
+
+            <div className="profile-container" ref={profileRef}>
+              <button
+                className="profile-btn"
+                aria-label="Perfil"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span className="user-name">{displayName}</span>
+              </button>
+
+              {isProfileMenuOpen && (
+                <div className="profile-dropdown">
+                  <Link
+                    to="/perfil"
+                    className="dropdown-item"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                  >
+                    Perfil
+                  </Link>
+                  <button className="dropdown-item logout" onClick={onLogout}>Cerrar sesión</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,10 @@
 .header {
+    position: sticky;
+    top: 0;
     background: var(--color-bg);
     border-bottom: 1px solid var(--color-border);
-    box-shadow: var(--shadow);
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
@@ -23,15 +26,19 @@
     cursor: pointer;
     color: var(--color-text-primary);
     padding: 0.5rem;
-    border-radius: 50%;
+    border-radius: var(--radius);
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.5rem;
     transition: all 0.2s;
 }
 
 .profile-btn:hover {
     background-color: var(--color-bg-light);
+    color: var(--color-primary);
+}
+
+.profile-btn:hover .user-name {
     color: var(--color-primary);
 }
 
@@ -106,7 +113,7 @@
         flex-direction: column;
         padding: var(--spacing-md);
         border-bottom: 1px solid var(--color-border);
-        box-shadow: var(--shadow-md);
+        /* Removed box-shadow */
         z-index: 1000;
     }
 
@@ -118,5 +125,77 @@
         width: 100%;
         text-align: center;
         padding: 0.75rem;
+    }
+
+    .user-name {
+        display: none;
+    }
+}
+
+.profile-container {
+    position: relative;
+}
+
+.user-name {
+    color: var(--color-text-primary);
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    transition: color 0.2s;
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border-radius: 8px;
+    /* Removed box-shadow */
+    border: 1px solid var(--color-border);
+    min-width: 150px;
+    overflow: hidden;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-decoration: none;
+}
+
+.dropdown-item:hover {
+    background-color: var(--color-bg-light);
+    color: var(--color-primary);
+}
+
+.dropdown-item.logout {
+    border-top: 1px solid var(--color-border);
+    color: #dc3545;
+}
+
+.dropdown-item.logout:hover {
+    background-color: #fff5f5;
+    color: #dc3545;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

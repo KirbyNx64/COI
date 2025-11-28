@@ -1,9 +1,13 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './AppointmentForm.css';
 
 function AppointmentForm() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const editingAppointment = location.state?.editingAppointment;
+    const isEditMode = !!editingAppointment;
+
     const [formData, setFormData] = useState({
         motivo: '',
         clinica: '',
@@ -14,6 +18,34 @@ function AppointmentForm() {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Pre-llenar formulario si estamos editando
+    useEffect(() => {
+        if (editingAppointment) {
+            // Convertir el label del motivo de vuelta a su valor
+            const motivosOptions = [
+                { value: '', label: 'Selecciona un motivo' },
+                { value: 'evaluacion', label: 'Evaluación' },
+                { value: 'control', label: 'Control de rutina' },
+                { value: 'dolor', label: 'Dolor en alguna pieza' },
+                { value: 'endodoncia', label: 'Endodoncia' },
+                { value: 'limpieza', label: 'Limpieza' },
+                { value: 'rellenos', label: 'Rellenos' },
+                { value: 'cirugia', label: 'Cirugía de cordal' },
+                { value: 'otro', label: 'Otro' }
+            ];
+
+            const motivoValue = motivosOptions.find(m => m.label === editingAppointment.reason)?.value || '';
+
+            setFormData({
+                motivo: motivoValue,
+                clinica: editingAppointment.clinica || '',
+                fecha: editingAppointment.date || '',
+                hora: editingAppointment.time || '',
+                notas: editingAppointment.notas || ''
+            });
+        }
+    }, [editingAppointment]);
 
     const motivosOptions = [
         { value: '', label: 'Selecciona un motivo' },
@@ -109,10 +141,54 @@ function AppointmentForm() {
         // Simular envío de formulario
         setTimeout(() => {
             console.log('Datos de la cita:', formData);
+
+            const existingAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+
+            if (isEditMode) {
+                // Actualizar cita existente
+                const updatedAppointments = existingAppointments.map(apt => {
+                    if (apt.id === editingAppointment.id) {
+                        return {
+                            ...apt,
+                            date: formData.fecha,
+                            time: formData.hora,
+                            reason: motivosOptions.find(m => m.value === formData.motivo)?.label || formData.motivo,
+                            clinica: formData.clinica,
+                            notas: formData.notas
+                        };
+                    }
+                    return apt;
+                });
+
+                localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
+            } else {
+                // Crear nueva cita
+                // Obtener datos del usuario desde localStorage
+                const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+                const patientName = userData.nombres || 'Paciente';
+
+                const newAppointment = {
+                    id: Date.now(),
+                    patientName: patientName,
+                    date: formData.fecha,
+                    time: formData.hora,
+                    reason: motivosOptions.find(m => m.value === formData.motivo)?.label || formData.motivo,
+                    status: 'programada',
+                    clinica: formData.clinica,
+                    notas: formData.notas
+                };
+
+                localStorage.setItem('appointments', JSON.stringify([...existingAppointments, newAppointment]));
+            }
+
             setIsSubmitting(false);
 
-            // Redirigir a la página de confirmación con los datos
-            navigate('/cita-confirmada', { state: { appointment: formData } });
+            // Redirigir a la página de inicio después de editar o a confirmación después de crear
+            if (isEditMode) {
+                navigate('/', { state: { message: 'Cita actualizada exitosamente' } });
+            } else {
+                navigate('/cita-confirmada', { state: { appointment: formData } });
+            }
         }, 1500);
     };
 
@@ -122,8 +198,13 @@ function AppointmentForm() {
     return (
         <div className="appointment-form-container">
             <div className="form-header">
-                <h2>Agenda tu Cita</h2>
-                <p>Completa el formulario y te notificaremos vía correo electrónico o celular para confirmar tu cita</p>
+                <h2>{isEditMode ? 'Editar Cita' : 'Agenda tu Cita'}</h2>
+                <p>
+                    {isEditMode
+                        ? 'Modifica los datos de tu cita y guarda los cambios'
+                        : 'Completa el formulario y te notificaremos vía correo electrónico o celular para confirmar tu cita'
+                    }
+                </p>
             </div>
 
 
@@ -263,6 +344,15 @@ function AppointmentForm() {
                         <>
                             <span className="spinner"></span>
                             Procesando...
+                        </>
+                    ) : isEditMode ? (
+                        <>
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <polyline points="7 3 7 8 15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            Guardar Cambios
                         </>
                     ) : (
                         <>
