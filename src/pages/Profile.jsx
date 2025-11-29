@@ -121,7 +121,7 @@ function Profile() {
                                 <label>Teléfono</label>
                                 <p>{userData.telefono || 'No especificado'}</p>
                             </div>
-                            <div className="info-item full-width">
+                            <div className="info-item">
                                 <label>Dirección</label>
                                 <p>{userData.direccion || 'No especificado'}</p>
                             </div>

@@ -112,6 +112,47 @@ function App() {
       setUserData(JSON.parse(storedUser));
       setUserType(storedType || 'patient');
     }
+
+    // Check for overdue appointments
+    const checkOverdueAppointments = () => {
+      try {
+        const storedAppointments = localStorage.getItem('appointments');
+        if (storedAppointments) {
+          let appointments = JSON.parse(storedAppointments);
+          let hasChanges = false;
+          const now = new Date();
+
+          appointments = appointments.map(apt => {
+            if (apt.status === 'programada') {
+              const aptDate = new Date(`${apt.date} ${apt.time}`);
+              // Add 2 hours to the appointment time
+              const limitTime = new Date(aptDate.getTime() + 2 * 60 * 60 * 1000);
+
+              if (now > limitTime) {
+                hasChanges = true;
+                return { ...apt, status: 'perdida' };
+              }
+            }
+            return apt;
+          });
+
+          if (hasChanges) {
+            localStorage.setItem('appointments', JSON.stringify(appointments));
+            console.log('Updated overdue appointments to "perdida"');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking overdue appointments:', error);
+      }
+    };
+
+    checkOverdueAppointments();
+
+    // Optional: Set up an interval to check periodically (e.g., every minute)
+    const intervalId = setInterval(checkOverdueAppointments, 60000);
+
+    return () => clearInterval(intervalId);
+
   }, []);
 
   const handleLogin = (email, password, registrationData = null, type = 'patient', staffData = null) => {
