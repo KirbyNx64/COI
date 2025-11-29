@@ -47,6 +47,8 @@
 
 .profile-header-info {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .profile-name {
@@ -54,12 +56,17 @@
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 0.25rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .profile-email {
     font-size: 1.1rem;
     color: var(--text-secondary);
     margin-bottom: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 /* Profile Sections */
@@ -97,7 +104,7 @@
 /* Info Grid */
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.5rem;
 }
 
@@ -105,6 +112,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    align-items: flex-start;
+    width: 100%;
+    min-width: 0;
 }
 
 .info-item.full-width {
@@ -129,6 +139,12 @@
     border-radius: 8px;
     margin-bottom: 0;
     border: 1px solid var(--border-color);
+    width: 100%;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    box-sizing: border-box;
 }
 
 /* Responsive */
@@ -138,8 +154,8 @@
     }
 
     .profile-header {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
+        text-align: left;
         padding: 1.5rem;
     }
 
@@ -170,7 +186,7 @@
     }
 
     .info-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
         gap: 1rem;
     }
 

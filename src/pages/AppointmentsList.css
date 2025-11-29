@@ -52,6 +52,7 @@
     border-radius: 12px;
     overflow: hidden;
     transition: all 0.2s ease;
+    min-width: 0;
 }
 
 .appointment-list-item:hover {
@@ -77,6 +78,8 @@
     align-items: center;
     gap: 1.5rem;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .summary-date {
@@ -87,6 +90,8 @@
     font-weight: 600;
     font-size: 0.95rem;
     min-width: 120px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .summary-date svg {
@@ -101,6 +106,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
 }
 
 .summary-status {
@@ -171,6 +177,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    min-width: 0;
 }
 
 .detail-item label {
@@ -190,6 +197,9 @@
     border-radius: 6px;
     margin: 0;
     border: 1px solid var(--border-color);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
 }
 
 /* Action Buttons */
