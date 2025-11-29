@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import './Header.css';
 
-function Header({ onLogout, userData }) {
+function Header({ onLogout, userData, userType }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef(null);
 
-  const displayName = userData ? userData.nombres : 'Usuario';
+  // Handle both patient (nombres) and staff (nombre) data structures
+  const displayName = userData ? (userData.nombres || userData.nombre || 'Usuario') : 'Usuario';
+
+  const isStaff = userType === 'admin' || userType === 'doctor';
 
   // Close profile menu when clicking outside
   useEffect(() => {
@@ -30,7 +33,7 @@ function Header({ onLogout, userData }) {
     <header className="header">
       <div className="container">
         <div className="header-content">
-          <Link to="/" className="logo">
+          <Link to={isStaff ? "/staff/dashboard" : "/"} className="logo">
             <img src={`${import.meta.env.BASE_URL}logo.webp`} alt="Clínica Dental Dr. Cesar Vásquez" className="logo-image" />
           </Link>
           <div className="header-actions">
@@ -47,9 +50,16 @@ function Header({ onLogout, userData }) {
             </button>
 
             <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
-              <Link to="/" className="nav-button" onClick={() => setIsMenuOpen(false)}>Inicio</Link>
-              <Link to="/cita" className="nav-button" onClick={() => setIsMenuOpen(false)}>Cita</Link>
-              <Link to="/contacto" className="nav-button" onClick={() => setIsMenuOpen(false)}>Contacto</Link>
+              {!isStaff && (
+                <>
+                  <Link to="/" className="nav-button" onClick={() => setIsMenuOpen(false)}>Inicio</Link>
+                  <Link to="/cita" className="nav-button" onClick={() => setIsMenuOpen(false)}>Cita</Link>
+                  <Link to="/contacto" className="nav-button" onClick={() => setIsMenuOpen(false)}>Contacto</Link>
+                </>
+              )}
+              {isStaff && (
+                <Link to="/staff/dashboard" className="nav-button" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+              )}
             </nav>
 
             <div className="profile-container" ref={profileRef}>
@@ -67,13 +77,15 @@ function Header({ onLogout, userData }) {
 
               {isProfileMenuOpen && (
                 <div className="profile-dropdown">
-                  <Link
-                    to="/perfil"
-                    className="dropdown-item"
-                    onClick={() => setIsProfileMenuOpen(false)}
-                  >
-                    Perfil
-                  </Link>
+                  {!isStaff && (
+                    <Link
+                      to="/perfil"
+                      className="dropdown-item"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Perfil
+                    </Link>
+                  )}
                   <button className="dropdown-item logout" onClick={onLogout}>Cerrar sesión</button>
                 </div>
               )}

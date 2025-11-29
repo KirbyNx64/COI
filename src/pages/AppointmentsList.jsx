@@ -25,7 +25,7 @@ function AppointmentsList() {
         const sortedAppointments = storedAppointments.sort((a, b) => {
             const dateA = new Date(`${a.date} ${a.time}`);
             const dateB = new Date(`${b.date} ${b.time}`);
-            return dateA - dateB;
+            return dateB - dateA;
         });
 
         setAppointments(sortedAppointments);
@@ -79,7 +79,7 @@ function AppointmentsList() {
         const sortedAppointments = updatedAppointments.sort((a, b) => {
             const dateA = new Date(`${a.date} ${a.time}`);
             const dateB = new Date(`${b.date} ${b.time}`);
-            return dateA - dateB;
+            return dateB - dateA;
         });
 
         // Actualizar estado local
