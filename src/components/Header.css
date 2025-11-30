@@ -42,6 +42,14 @@
     color: var(--color-primary);
 }
 
+.profile-photo-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-border);
+}
+
 .nav-menu {
     display: flex;
     gap: var(--spacing-md);

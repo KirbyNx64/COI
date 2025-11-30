@@ -6,6 +6,7 @@ function Header({ onLogout, userData, userType }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   // Handle both patient (nombres) and staff (nombre) data structures
   const displayName = userData ? (userData.nombres || userData.nombre || 'Usuario') : 'Usuario';
@@ -29,6 +30,23 @@ function Header({ onLogout, userData, userType }) {
     };
   }, [isProfileMenuOpen]);
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
   return (
     <header className="header">
       <div className="container">
@@ -37,30 +55,32 @@ function Header({ onLogout, userData, userType }) {
             <img src={`${import.meta.env.BASE_URL}logo.webp`} alt="Clínica Dental Dr. Cesar Vásquez" className="logo-image" />
           </Link>
           <div className="header-actions">
-            <button
-              className="mobile-menu-btn"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Menú"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            </button>
+            <div ref={mobileMenuRef}>
+              <button
+                className="mobile-menu-btn"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label="Menú"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+              </button>
 
-            <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
-              {!isStaff && (
-                <>
-                  <Link to="/" className="nav-button" onClick={() => setIsMenuOpen(false)}>Inicio</Link>
-                  <Link to="/cita" className="nav-button" onClick={() => setIsMenuOpen(false)}>Cita</Link>
-                  <Link to="/contacto" className="nav-button" onClick={() => setIsMenuOpen(false)}>Contacto</Link>
-                </>
-              )}
-              {isStaff && (
-                <Link to="/staff/dashboard" className="nav-button" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
-              )}
-            </nav>
+              <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
+                {!isStaff && (
+                  <>
+                    <Link to="/" className="nav-button" onClick={() => setIsMenuOpen(false)}>Inicio</Link>
+                    <Link to="/cita" className="nav-button" onClick={() => setIsMenuOpen(false)}>Cita</Link>
+                    <Link to="/contacto" className="nav-button" onClick={() => setIsMenuOpen(false)}>Contacto</Link>
+                  </>
+                )}
+                {isStaff && (
+                  <Link to="/staff/dashboard" className="nav-button" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+                )}
+              </nav>
+            </div>
 
             <div className="profile-container" ref={profileRef}>
               <button
@@ -68,10 +88,18 @@ function Header({ onLogout, userData, userType }) {
                 aria-label="Perfil"
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+                {userData?.photoURL ? (
+                  <img
+                    src={userData.photoURL}
+                    alt="Perfil"
+                    className="profile-photo-small"
+                  />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                )}
                 <span className="user-name">{displayName}</span>
               </button>
 

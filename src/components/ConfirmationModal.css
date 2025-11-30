@@ -98,3 +98,24 @@
         transform: translateY(0) scale(1);
     }
 }
+
+/* Success Modal Specific Styles */
+.success-modal .modal-btn-confirm {
+    background-color: #3b82f6;
+    /* Blue for success */
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.success-modal .modal-btn-confirm:hover {
+    background-color: #2563eb;
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.success-modal .modal-actions {
+    justify-content: center;
+}
+
+.success-modal .modal-btn {
+    flex: 0 1 auto;
+    min-width: 120px;
+}

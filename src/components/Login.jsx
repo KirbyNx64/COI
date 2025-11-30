@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import './Login.css';
+import './ConfirmationModal.css';
+import { signUp, signIn, resetPassword } from '../services/authService';
+import ConfirmationModal from './ConfirmationModal';
 
 const Login = ({ onLogin }) => {
     const [isLoginView, setIsLoginView] = useState(true);
     const [registrationStep, setRegistrationStep] = useState(1);
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
+    const [showResetPassword, setShowResetPassword] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetMessage, setResetMessage] = useState('');
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // Step 1 Data
     const [email, setEmail] = useState('');
@@ -35,81 +43,185 @@ const Login = ({ onLogin }) => {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setFieldErrors({});
+        setIsLoading(true);
 
-        if (isLoginView) {
-            // LOGIN LOGIC
-            if (email && password) {
-                onLogin(email, password);
+        try {
+            if (isLoginView) {
+                // LOGIN LOGIC
+                if (!email || !password) {
+                    setError('Por favor, completa todos los campos.');
+                    setIsLoading(false);
+                    return;
+                }
+
+                const { user, error: signInError } = await signIn(email, password);
+
+                if (signInError) {
+                    if (signInError.code === 'auth/email-not-verified') {
+                        setError('Por favor, verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.');
+                    } else if (signInError.code === 'auth/user-not-found') {
+                        setError('No existe una cuenta con este correo.');
+                    } else if (signInError.code === 'auth/wrong-password') {
+                        setError('Contraseña incorrecta.');
+                    } else if (signInError.code === 'auth/invalid-credential') {
+                        setError('Correo o contraseña incorrectos.');
+                    } else {
+                        setError(signInError.message || 'Error al iniciar sesión.');
+                    }
+                    setIsLoading(false);
+                    return;
+                }
+
+                if (user) {
+                    // Keep loading state true - don't set to false
+                    // The app will navigate and unmount this component
+                    onLogin(user);
+                    // Don't call setIsLoading(false) here
+                }
             } else {
-                setError('Por favor, completa todos los campos.');
+                // REGISTRATION LOGIC
+                if (registrationStep === 1) {
+                    const errors = {};
+                    if (!email) errors.email = 'Ingresa tu correo electrónico';
+                    if (!password) errors.password = 'Crea una contraseña';
+                    if (!confirmPassword) errors.confirmPassword = 'Confirma tu contraseña';
+
+                    if (Object.keys(errors).length > 0) {
+                        setFieldErrors(errors);
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    if (password.length < 6) {
+                        setError('La contraseña debe tener al menos 6 caracteres.');
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    if (password !== confirmPassword) {
+                        setError('Las contraseñas no coinciden.');
+                        setIsLoading(false);
+                        return;
+                    }
+                    setRegistrationStep(2);
+                    setIsLoading(false);
+                } else {
+                    // Finalize Registration
+                    const errors = {};
+                    if (!nombres) errors.nombres = 'Ingresa tus nombres';
+                    if (!apellidos) errors.apellidos = 'Ingresa tus apellidos';
+                    if (!fechaNacimiento) errors.fechaNacimiento = 'Selecciona tu fecha de nacimiento';
+                    if (!dui) errors.dui = 'Ingresa tu número de DUI';
+                    if (!genero) errors.genero = 'Selecciona tu género';
+                    if (!direccion) errors.direccion = 'Ingresa tu dirección completa';
+                    if (!telefono) errors.telefono = 'Ingresa tu número de teléfono';
+                    if (!emergenciaNombre) errors.emergenciaNombre = 'Ingresa el nombre del contacto';
+                    if (!emergenciaTelefono) errors.emergenciaTelefono = 'Ingresa el teléfono del contacto';
+                    if (!emergenciaParentesco) errors.emergenciaParentesco = 'Selecciona el parentesco';
+
+                    if (Object.keys(errors).length > 0) {
+                        setFieldErrors(errors);
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    const registrationData = {
+                        nombres,
+                        apellidos,
+                        fechaNacimiento,
+                        dui,
+                        genero,
+                        direccion,
+                        telefono,
+                        emergenciaNombre,
+                        emergenciaTelefono,
+                        emergenciaParentesco,
+                        tipoPaciente
+                    };
+
+                    // Mark that user is about to register to prevent auto-login
+                    console.log('Setting justRegistered flag BEFORE signUp');
+                    sessionStorage.setItem('justRegistered', 'true');
+                    console.log('Flag set:', sessionStorage.getItem('justRegistered'));
+
+                    const { user, error: signUpError } = await signUp(email, password, registrationData);
+
+                    if (signUpError) {
+                        // Clear the flag if registration failed
+                        sessionStorage.removeItem('justRegistered');
+
+                        if (signUpError.code === 'auth/email-already-in-use') {
+                            setError('Este correo ya está registrado.');
+                        } else {
+                            setError(signUpError.message || 'Error al registrar usuario.');
+                        }
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    setError('');
+                    setShowSuccessModal(true);
+                }
             }
-        } else {
-            // REGISTRATION LOGIC
-            if (registrationStep === 1) {
-                const errors = {};
-                if (!email) errors.email = 'Ingresa tu correo electrónico';
-                if (!password) errors.password = 'Crea una contraseña';
-                if (!confirmPassword) errors.confirmPassword = 'Confirma tu contraseña';
-
-                if (Object.keys(errors).length > 0) {
-                    setFieldErrors(errors);
-                    return;
-                }
-
-                if (password !== confirmPassword) {
-                    setError('Las contraseñas no coinciden.');
-                    return;
-                }
-                // Move to Step 2
-                setRegistrationStep(2);
-            } else {
-                // Finalize Registration
-                const errors = {};
-                if (!nombres) errors.nombres = 'Ingresa tus nombres';
-                if (!apellidos) errors.apellidos = 'Ingresa tus apellidos';
-                if (!fechaNacimiento) errors.fechaNacimiento = 'Selecciona tu fecha de nacimiento';
-                if (!dui) errors.dui = 'Ingresa tu número de DUI';
-                if (!genero) errors.genero = 'Selecciona tu género';
-                if (!direccion) errors.direccion = 'Ingresa tu dirección completa';
-                if (!telefono) errors.telefono = 'Ingresa tu número de teléfono';
-                if (!emergenciaNombre) errors.emergenciaNombre = 'Ingresa el nombre del contacto';
-                if (!emergenciaTelefono) errors.emergenciaTelefono = 'Ingresa el teléfono del contacto';
-                if (!emergenciaParentesco) errors.emergenciaParentesco = 'Selecciona el parentesco';
-
-                if (Object.keys(errors).length > 0) {
-                    setFieldErrors(errors);
-                    return;
-                }
-
-                // Prepare registration data
-                const registrationData = {
-                    nombres,
-                    apellidos,
-                    fechaNacimiento,
-                    dui,
-                    genero,
-                    direccion,
-                    telefono,
-                    emergenciaNombre,
-                    emergenciaTelefono,
-                    emergenciaParentesco,
-                    tipoPaciente
-                };
-
-                // Simulate registration success and auto-login with user data
-                onLogin(email, password, registrationData);
-            }
+        } catch (err) {
+            console.error('Error:', err);
+            setError('Ocurrió un error inesperado. Por favor, intenta de nuevo.');
+            setIsLoading(false);
         }
+        // Don't use finally block - we want to keep loading state on successful login
+    };
+
+    const handleSuccessModalClose = async () => {
+        setShowSuccessModal(false);
+
+        // Clear the registration flag
+        sessionStorage.removeItem('justRegistered');
+
+        // Sign out the user to prevent auto-login
+        const { signOut } = await import('../services/authService');
+        await signOut();
+
+        setIsLoginView(true);
+        setRegistrationStep(1);
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
     };
 
     const handleTabChange = (isLogin) => {
         setIsLoginView(isLogin);
         setError('');
-        setRegistrationStep(1); // Reset step when switching tabs
+        setFieldErrors({});
+        setRegistrationStep(1);
+    };
+
+    const handleResetPassword = async (e) => {
+        e.preventDefault();
+        setResetMessage('');
+
+        if (!resetEmail) {
+            setResetMessage('Por favor, ingresa tu correo electrónico.');
+            return;
+        }
+
+        setIsLoading(true);
+        const { error } = await resetPassword(resetEmail);
+        setIsLoading(false);
+
+        if (error) {
+            setResetMessage('Error al enviar el correo de recuperación.');
+        } else {
+            setResetMessage('¡Correo enviado! Revisa tu bandeja de entrada.');
+            setTimeout(() => {
+                setShowResetPassword(false);
+                setResetEmail('');
+                setResetMessage('');
+            }, 3000);
+        }
     };
 
     const handleDuiChange = (e) => {
@@ -397,17 +509,67 @@ const Login = ({ onLogin }) => {
                                 Atrás
                             </button>
                         )}
-                        <button type="submit" className="login-button">
-                            {isLoginView ? 'Ingresar' : (registrationStep === 1 ? 'Siguiente' : 'Finalizar Registro')}
+                        <button type="submit" className="login-button" disabled={isLoading}>
+                            {isLoading ? 'Cargando...' : (isLoginView ? 'Ingresar' : (registrationStep === 1 ? 'Siguiente' : 'Finalizar Registro'))}
                         </button>
                     </div>
 
                     {isLoginView && (
                         <div className="forgot-password">
-                            <a href="#">¿Olvidaste tu contraseña?</a>
+                            <a href="#" onClick={(e) => { e.preventDefault(); setShowResetPassword(true); }}>¿Olvidaste tu contraseña?</a>
                         </div>
                     )}
                 </form>
+
+                {/* Password Reset Modal */}
+                {showResetPassword && (
+                    <div className="modal-overlay" onClick={() => setShowResetPassword(false)}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <h3>Recuperar Contraseña</h3>
+                            <p>Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</p>
+                            <form onSubmit={handleResetPassword}>
+                                <div className="form-group">
+                                    <label htmlFor="resetEmail">Correo Electrónico</label>
+                                    <input
+                                        type="email"
+                                        id="resetEmail"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        placeholder="ejemplo@correo.com"
+                                        required
+                                    />
+                                </div>
+                                {resetMessage && <p className={resetMessage.includes('Error') ? 'error-message' : 'success-message'}>{resetMessage}</p>}
+                                <div className="button-group">
+                                    <button type="button" className="login-button secondary" onClick={() => setShowResetPassword(false)}>
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" className="login-button" disabled={isLoading}>
+                                        {isLoading ? 'Enviando...' : 'Enviar'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Success Modal */}
+                {showSuccessModal && (
+                    <div className="modal-overlay" onClick={handleSuccessModalClose}>
+                        <div className="modal-content success-modal" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="modal-title">¡Registro exitoso!</h3>
+                            <p className="modal-message">
+                                Hemos enviado un correo de verificación a tu dirección de email.
+                                Por favor, verifica tu correo antes de iniciar sesión.
+                            </p>
+                            <div className="modal-actions">
+                                <button className="modal-btn modal-btn-confirm" onClick={handleSuccessModalClose}>
+                                    Aceptar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { onAuthChange, getUserProfile, signOut as firebaseSignOut } from './services/authService';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -15,9 +16,18 @@ import StaffDashboard from './pages/StaffDashboard';
 import './App.css';
 
 
-function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLogout, isStaff }) {
+function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLogout, isStaff, isLoading }) {
   const location = useLocation();
   const isStaffPage = location.pathname === '/staff/login' || location.pathname === '/staff/dashboard';
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -72,7 +82,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
                 </div>
               } />
               <Route path="/contacto" element={<Contact />} />
-              <Route path="/perfil" element={<Profile />} />
+              <Route path="/perfil" element={<Profile userData={userData} />} />
               <Route path="/mis-citas" element={<AppointmentsList />} />
               <Route path="/cita-confirmada" element={<AppointmentConfirmation />} />
             </>
@@ -102,117 +112,105 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState(null);
   const [userType, setUserType] = useState(null); // 'patient', 'admin', 'doctor'
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   useEffect(() => {
-    const storedAuth = localStorage.getItem('isAuthenticated');
-    const storedUser = localStorage.getItem('userData');
-    const storedType = localStorage.getItem('userType');
-    if (storedAuth === 'true' && storedUser) {
-      setIsAuthenticated(true);
-      setUserData(JSON.parse(storedUser));
-      setUserType(storedType || 'patient');
-    }
+    // Listen for Firebase auth state changes
+    const unsubscribe = onAuthChange(async (user) => {
+      console.log('Auth state changed, user:', user?.email);
+      if (user) {
+        // Check if user just registered - if so, don't auto-login
+        const justRegistered = sessionStorage.getItem('justRegistered');
+        console.log('justRegistered flag:', justRegistered);
+        if (justRegistered === 'true') {
+          console.log('User just registered, skipping auto-login');
+          setIsLoading(false);
+          return;
+        }
+
+        // User is signed in, load their profile with retry logic
+        let retries = 3;
+        let profile = null;
+        let error = null;
+
+        while (retries > 0 && !profile) {
+          const result = await getUserProfile(user.uid);
+          profile = result.profile;
+          error = result.error;
+
+          if (!profile && retries > 1) {
+            console.log(`Failed to load profile, retrying... (${retries - 1} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          }
+          retries--;
+        }
+
+        if (profile) {
+          setUserData(profile);
+          setUserType('patient');
+          setIsAuthenticated(true);
+          setIsLoading(false);
+        } else {
+          console.error('Failed to load profile after retries:', error);
+          // Don't sign out immediately - give user a chance to retry
+          setIsAuthenticated(false);
+          setUserData(null);
+          setUserType(null);
+          setIsLoading(false);
+        }
+      } else {
+        // User is signed out
+        setIsAuthenticated(false);
+        setUserData(null);
+        setUserType(null);
+        setIsLoading(false);
+      }
+    });
 
     // Check for overdue appointments
     const checkOverdueAppointments = () => {
-      try {
-        const storedAppointments = localStorage.getItem('appointments');
-        if (storedAppointments) {
-          let appointments = JSON.parse(storedAppointments);
-          let hasChanges = false;
-          const now = new Date();
+      const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+      const now = new Date();
 
-          appointments = appointments.map(apt => {
-            if (apt.status === 'programada') {
-              const aptDate = new Date(`${apt.date} ${apt.time}`);
-              // Add 2 hours to the appointment time
-              const limitTime = new Date(aptDate.getTime() + 2 * 60 * 60 * 1000);
+      appointments.forEach(appointment => {
+        if (appointment.status === 'programada') {
+          const appointmentDateTime = new Date(`${appointment.fecha}T${appointment.hora}`);
+          const twoHoursAfter = new Date(appointmentDateTime.getTime() + (2 * 60 * 60 * 1000));
 
-              if (now > limitTime) {
-                hasChanges = true;
-                return { ...apt, status: 'perdida' };
-              }
-            }
-            return apt;
-          });
-
-          if (hasChanges) {
-            localStorage.setItem('appointments', JSON.stringify(appointments));
-            console.log('Updated overdue appointments to "perdida"');
+          if (now > twoHoursAfter) {
+            appointment.status = 'perdida';
           }
         }
-      } catch (error) {
-        console.error('Error checking overdue appointments:', error);
-      }
+      });
+
+      localStorage.setItem('appointments', JSON.stringify(appointments));
     };
 
     checkOverdueAppointments();
-
-    // Optional: Set up an interval to check periodically (e.g., every minute)
     const intervalId = setInterval(checkOverdueAppointments, 60000);
 
-    return () => clearInterval(intervalId);
-
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
   }, []);
 
-  const handleLogin = (email, password, registrationData = null, type = 'patient', staffData = null) => {
-    // For now, accept any non-empty credentials
-    // In a real app, you would validate against a backend
-    console.log('Logging in with:', email, 'Type:', type);
+  const handleLogin = async (user) => {
+    // User is already authenticated via Firebase
+    // Just load their profile data
+    const { profile, error } = await getUserProfile(user.uid);
 
-    let user;
-    if (type === 'patient') {
-      if (registrationData) {
-        // New patient registration
-        user = {
-          email,
-          nombres: registrationData.nombres,
-          apellidos: registrationData.apellidos,
-          fechaNacimiento: registrationData.fechaNacimiento,
-          dui: registrationData.dui,
-          genero: registrationData.genero,
-          direccion: registrationData.direccion,
-          telefono: registrationData.telefono,
-          emergenciaNombre: registrationData.emergenciaNombre,
-          emergenciaTelefono: registrationData.emergenciaTelefono,
-          emergenciaParentesco: registrationData.emergenciaParentesco,
-          tipoPaciente: registrationData.tipoPaciente
-        };
-      } else {
-        // Existing patient login - check if user data exists
-        const existingUser = localStorage.getItem('userData');
-        if (existingUser) {
-          user = JSON.parse(existingUser);
-        } else {
-          // Create a basic user object for login without registration
-          user = {
-            email,
-            nombres: email.split('@')[0], // Use email prefix as temporary name
-            apellidos: ''
-          };
-        }
-      }
+    if (profile) {
+      setUserData(profile);
+      setUserType('patient');
+      setIsAuthenticated(true);
     } else {
-      // Staff login (admin or doctor)
-      user = {
-        email,
-        nombre: staffData?.nombre || email.split('@')[0],
-        cargo: staffData?.cargo || type
-      };
+      console.error('Failed to load profile:', error);
     }
-
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userData', JSON.stringify(user));
-    localStorage.setItem('userType', type);
-    setUserData(user);
-    setUserType(type);
-    setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userData');
-    localStorage.removeItem('userType');
+  const handleLogout = async () => {
+    await firebaseSignOut();
     setIsAuthenticated(false);
     setUserData(null);
     setUserType(null);
@@ -230,6 +228,7 @@ function App() {
           handleLogin={handleLogin}
           handleLogout={handleLogout}
           isStaff={isStaff}
+          isLoading={isLoading}
         />
       </div>
     </Router>

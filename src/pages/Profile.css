@@ -28,6 +28,11 @@
     gap: 1.5rem;
 }
 
+.profile-avatar-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
 .profile-avatar {
     width: 100px;
     height: 100px;
@@ -37,12 +42,72 @@
     align-items: center;
     justify-content: center;
     color: white;
-    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.profile-avatar:hover {
+    transform: scale(1.05);
 }
 
 .profile-avatar svg {
     width: 48px;
     height: 48px;
+}
+
+.profile-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.photo-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.profile-avatar:hover .photo-overlay {
+    opacity: 1;
+}
+
+.photo-overlay svg {
+    width: 20px;
+    height: 20px;
+    color: white;
+}
+
+.upload-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.upload-error {
+    color: #e74c3c;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
 }
 
 .profile-header-info {
@@ -167,6 +232,11 @@
     .profile-avatar svg {
         width: 40px;
         height: 40px;
+    }
+
+    .photo-overlay svg {
+        width: 16px;
+        height: 16px;
     }
 
     .profile-name {
