@@ -13,6 +13,7 @@ import WhatsAppButton from './components/WhatsAppButton';
 import Login from './components/Login';
 import StaffLogin from './components/StaffLogin';
 import StaffDashboard from './pages/StaffDashboard';
+import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
 
@@ -220,6 +221,7 @@ function App() {
 
   return (
     <Router basename={import.meta.env.BASE_URL}>
+      <ScrollToTop />
       <div className="app">
         <AppContent
           isAuthenticated={isAuthenticated}

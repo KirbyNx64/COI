@@ -190,6 +190,9 @@ const Login = ({ onLogin }) => {
         setEmail('');
         setPassword('');
         setConfirmPassword('');
+
+        // Scroll to top when returning to login view
+        window.scrollTo(0, 0);
     };
 
     const handleTabChange = (isLogin) => {
