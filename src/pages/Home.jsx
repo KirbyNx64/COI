@@ -1,33 +1,39 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { auth } from '../firebaseConfig';
+import { subscribeToUserAppointments, updateAppointmentStatus } from '../services/appointmentService';
+import { jsPDF } from 'jspdf';
 import ConfirmationModal from '../components/ConfirmationModal';
 import './Home.css';
 
-function Home() {
+function Home({ userData }) {
     const navigate = useNavigate();
     const [scheduledAppointments, setScheduledAppointments] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [appointmentToCancel, setAppointmentToCancel] = useState(null);
-    const [userData, setUserData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Cargar datos del usuario actual
-        const storedUser = localStorage.getItem('userData');
-        if (storedUser) {
-            setUserData(JSON.parse(storedUser));
+        const user = auth.currentUser;
+        if (!user) {
+            setIsLoading(false);
+            return;
         }
 
-        // Cargar citas programadas desde localStorage
-        const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-
-        // Ordenar citas por fecha y hora (más próxima primero)
-        const sortedAppointments = appointments.sort((a, b) => {
-            const dateA = new Date(`${a.date} ${a.time}`);
-            const dateB = new Date(`${b.date} ${b.time}`);
-            return dateA - dateB; // Orden ascendente (más próxima primero)
+        // Subscribe to real-time updates from Firebase
+        const unsubscribe = subscribeToUserAppointments(user.uid, (appointments) => {
+            // Sort appointments by date and time (closest first)
+            const sortedAppointments = appointments.sort((a, b) => {
+                const dateA = new Date(`${a.date} ${a.time} `);
+                const dateB = new Date(`${b.date} ${b.time} `);
+                return dateA - dateB; // Ascending order (closest first)
+            });
+            setScheduledAppointments(sortedAppointments);
+            setIsLoading(false);
         });
 
-        setScheduledAppointments(sortedAppointments);
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
     }, []);
 
     const getStatusLabel = (status) => {
@@ -56,33 +62,179 @@ function Home() {
         setIsModalOpen(true);
     };
 
-    const confirmCancellation = () => {
+    const confirmCancellation = async () => {
         if (!appointmentToCancel) return;
 
-        // Obtener citas del localStorage
-        const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+        try {
+            // Update appointment status in Firebase
+            const { error } = await updateAppointmentStatus(appointmentToCancel, 'cancelada');
 
-        // Actualizar el estado de la cita
-        const updatedAppointments = appointments.map(apt =>
-            apt.id === appointmentToCancel ? { ...apt, status: 'cancelada' } : apt
-        );
+            if (error) {
+                console.error('Error cancelling appointment:', error);
+                alert('Error al cancelar la cita. Por favor, intenta de nuevo.');
+            }
 
-        // Guardar en localStorage
-        localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
+            // Close modal and clear state
+            setIsModalOpen(false);
+            setAppointmentToCancel(null);
+        } catch (err) {
+            console.error('Unexpected error:', err);
+            alert('Ocurrió un error inesperado. Por favor, intenta de nuevo.');
+            setIsModalOpen(false);
+            setAppointmentToCancel(null);
+        }
+    };
 
-        // Ordenar citas actualizadas (más próxima primero)
-        const sortedAppointments = updatedAppointments.sort((a, b) => {
-            const dateA = new Date(`${a.date} ${a.time}`);
-            const dateB = new Date(`${b.date} ${b.time}`);
-            return dateA - dateB; // Orden ascendente (más próxima primero)
-        });
+    const handleDownloadReceipt = async (appointment) => {
+        try {
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
 
-        // Actualizar estado local
-        setScheduledAppointments(sortedAppointments);
+            const pageWidth = 210;
+            const margin = 20;
+            const contentWidth = pageWidth - (margin * 2);
+            let yPosition = margin;
 
-        // Cerrar modal y limpiar estado
-        setIsModalOpen(false);
-        setAppointmentToCancel(null);
+            // Logo
+            try {
+                const logoPath = `${import.meta.env.BASE_URL}logo.png`;
+                const response = await fetch(logoPath);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const logoDataUrl = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    const logoImage = new Image();
+                    await new Promise((resolve) => {
+                        logoImage.onload = resolve;
+                        logoImage.src = logoDataUrl;
+                    });
+                    const logoWidth = 40;
+                    const logoHeight = (logoImage.height * logoWidth) / logoImage.width;
+                    const logoX = (pageWidth - logoWidth) / 2;
+                    pdf.addImage(logoDataUrl, 'PNG', logoX, yPosition, logoWidth, logoHeight);
+                    yPosition += logoHeight + 15;
+                }
+            } catch (error) {
+                console.warn('No se pudo cargar el logo:', error);
+            }
+
+            // Título
+            pdf.setFontSize(20);
+            pdf.setFont('helvetica', 'bold');
+            const title = 'COMPROBANTE DE CITA';
+            const titleWidth = pdf.getTextWidth(title);
+            pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
+            yPosition += 10;
+
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 10;
+
+            // Detalles de la cita
+            pdf.setFontSize(14);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Detalles de la Cita', margin, yPosition);
+            yPosition += 8;
+
+            pdf.setFontSize(11);
+            pdf.setFont('helvetica', 'normal');
+
+            // Paciente
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Paciente:', margin, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(appointment.patientName || 'Usuario', margin + 30, yPosition);
+            yPosition += 7;
+
+            // Motivo
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Motivo:', margin, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(appointment.reason || 'No especificado', margin + 30, yPosition);
+            yPosition += 7;
+
+            // Clínica
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Clínica:', margin, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(getClinicaLabel(appointment.clinica), margin + 30, yPosition);
+            yPosition += 7;
+
+            // Fecha
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Fecha:', margin, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(appointment.date, margin + 30, yPosition);
+            yPosition += 7;
+
+            // Hora
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Hora:', margin, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(appointment.time, margin + 30, yPosition);
+            yPosition += 7;
+
+            // Estado
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Estado:', margin, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(getStatusLabel(appointment.status), margin + 30, yPosition);
+            yPosition += 10;
+
+            // Notas
+            if (appointment.notas && appointment.notas.trim()) {
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Notas adicionales:', margin, yPosition);
+                yPosition += 6;
+                pdf.setFont('helvetica', 'normal');
+                const notasLines = pdf.splitTextToSize(appointment.notas, contentWidth);
+                pdf.text(notasLines, margin, yPosition);
+                yPosition += notasLines.length * 6 + 10;
+            }
+
+            // Línea separadora
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 10;
+
+            // Información adicional
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'italic');
+            pdf.setTextColor(100, 100, 100);
+            const fechaGeneracion = new Date().toLocaleDateString('es-SV', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            pdf.text(`Comprobante generado el: ${fechaGeneracion}`, margin, yPosition);
+
+            // Guardar PDF
+            const arrayBuffer = pdf.output('arraybuffer');
+            const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            const fileName = `comprobante-cita-${appointment.date}.pdf`;
+            link.href = pdfUrl;
+            link.download = fileName;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(pdfUrl);
+            }, 1500);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Hubo un error al generar el comprobante. Por favor intenta de nuevo.');
+        }
     };
 
     const handleEditAppointment = (appointment) => {
@@ -107,26 +259,51 @@ function Home() {
                             </Link>
                         )}
                     </div>
-                    {scheduledAppointments.length > 0 ? (
+
+                    {isLoading ? (
+                        <div className="loading-state" style={{ textAlign: 'center', padding: '3rem' }}>
+                            <div className="spinner" style={{
+                                width: '40px',
+                                height: '40px',
+                                border: '4px solid #f3f3f3',
+                                borderTop: '4px solid #3498db',
+                                borderRadius: '50%',
+                                animation: 'spin 1s linear infinite',
+                                margin: '0 auto'
+                            }}></div>
+                            <p style={{ marginTop: '1rem', color: '#666' }}>Cargando citas...</p>
+                        </div>
+                    ) : scheduledAppointments.length > 0 ? (
                         <>
                             <div className="appointments-grid">
                                 {scheduledAppointments.slice(0, 3).map((appointment) => (
                                     <div key={appointment.id} className="appointment-card">
                                         <div className="appointment-header">
-                                            <div className="appointment-icon">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                                </svg>
+                                            <div className="appointment-header-left">
+                                                <div className="appointment-icon">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                    </svg>
+                                                </div>
+                                                <button
+                                                    className="download-receipt-btn"
+                                                    onClick={() => handleDownloadReceipt(appointment)}
+                                                    title="Descargar comprobante"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M12 15L12 3M12 15L8 11M12 15L16 11M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17"></path>
+                                                    </svg>
+                                                </button>
                                             </div>
                                             <span className={`appointment-status status-${appointment.status}`}>
                                                 {getStatusLabel(appointment.status)}
                                             </span>
                                         </div>
                                         <div className="appointment-details">
-                                            <h3>Paciente: {userData ? `${userData.nombres} ${userData.apellidos}`.trim() : 'Usuario'}</h3>
+                                            <h3>Paciente: {appointment.patientName || 'Usuario'}</h3>
                                             <div className="appointment-info">
                                                 <div className="info-item">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -153,6 +330,11 @@ function Home() {
                                             {appointment.clinica && (
                                                 <p className="appointment-reason">
                                                     <strong>Clínica:</strong> {getClinicaLabel(appointment.clinica)}
+                                                </p>
+                                            )}
+                                            {appointment.notas && appointment.notas.trim() && (
+                                                <p className="appointment-reason">
+                                                    <strong>Notas:</strong> {appointment.notas}
                                                 </p>
                                             )}
                                         </div>

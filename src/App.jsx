@@ -55,7 +55,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               !isAuthenticated ? (
                 <Login onLogin={handleLogin} />
               ) : userType === 'patient' ? (
-                <Home />
+                <Home userData={userData} />
               ) : (
                 <Navigate to="/staff/dashboard" replace />
               )
@@ -79,7 +79,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
             <>
               <Route path="/cita" element={
                 <div className="container">
-                  <AppointmentForm />
+                  <AppointmentForm userData={userData} />
                 </div>
               } />
               <Route path="/contacto" element={<Contact />} />
@@ -151,6 +151,11 @@ function App() {
           setUserType('patient');
           setIsAuthenticated(true);
           setIsLoading(false);
+
+          // Migración desactivada - las citas antiguas de localStorage no se transferirán a Firebase
+          // Si necesitas migrar citas antiguas, descomenta las siguientes líneas:
+          // const { migrateLocalStorageToFirebase } = await import('./services/migrationService');
+          // await migrateLocalStorageToFirebase(user.uid, profile);
         } else {
           console.error('Failed to load profile after retries:', error);
           // Don't sign out immediately - give user a chance to retry
@@ -168,27 +173,14 @@ function App() {
       }
     });
 
-    // Check for overdue appointments
-    const checkOverdueAppointments = () => {
-      const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-      const now = new Date();
-
-      appointments.forEach(appointment => {
-        if (appointment.status === 'programada') {
-          const appointmentDateTime = new Date(`${appointment.fecha}T${appointment.hora}`);
-          const twoHoursAfter = new Date(appointmentDateTime.getTime() + (2 * 60 * 60 * 1000));
-
-          if (now > twoHoursAfter) {
-            appointment.status = 'perdida';
-          }
-        }
-      });
-
-      localStorage.setItem('appointments', JSON.stringify(appointments));
+    // Check for overdue appointments using Firebase
+    const checkOverdueAppointments = async () => {
+      const { markOverdueAppointmentsAsLost } = await import('./services/appointmentService');
+      await markOverdueAppointmentsAsLost();
     };
 
     checkOverdueAppointments();
-    const intervalId = setInterval(checkOverdueAppointments, 60000);
+    const intervalId = setInterval(checkOverdueAppointments, 60000); // Check every minute
 
     return () => {
       unsubscribe();

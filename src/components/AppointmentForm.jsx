@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { auth } from '../firebaseConfig';
+import { createAppointment, updateAppointment } from '../services/appointmentService';
 import './AppointmentForm.css';
 
-function AppointmentForm() {
+function AppointmentForm({ userData }) {
     const navigate = useNavigate();
     const location = useLocation();
     const editingAppointment = location.state?.editingAppointment;
@@ -138,58 +140,65 @@ function AppointmentForm() {
 
         setIsSubmitting(true);
 
-        // Simular envío de formulario
-        setTimeout(() => {
-            console.log('Datos de la cita:', formData);
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                setErrors({ general: 'Debes iniciar sesión para agendar una cita' });
+                setIsSubmitting(false);
+                return;
+            }
 
-            const existingAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+            const patientName = userData ? `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() : 'Paciente';
+            const reasonLabel = motivosOptions.find(m => m.value === formData.motivo)?.label || formData.motivo;
 
             if (isEditMode) {
-                // Actualizar cita existente
-                const updatedAppointments = existingAppointments.map(apt => {
-                    if (apt.id === editingAppointment.id) {
-                        return {
-                            ...apt,
-                            date: formData.fecha,
-                            time: formData.hora,
-                            reason: motivosOptions.find(m => m.value === formData.motivo)?.label || formData.motivo,
-                            clinica: formData.clinica,
-                            notas: formData.notas
-                        };
-                    }
-                    return apt;
-                });
-
-                localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
-            } else {
-                // Crear nueva cita
-                // Obtener datos del usuario desde localStorage
-                const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-                const patientName = userData.nombres || 'Paciente';
-
-                const newAppointment = {
-                    id: Date.now(),
-                    patientName: patientName,
+                // Actualizar cita existente en Firebase
+                const updates = {
                     date: formData.fecha,
                     time: formData.hora,
-                    reason: motivosOptions.find(m => m.value === formData.motivo)?.label || formData.motivo,
-                    status: 'programada',
+                    reason: reasonLabel,
                     clinica: formData.clinica,
                     notas: formData.notas
                 };
 
-                localStorage.setItem('appointments', JSON.stringify([...existingAppointments, newAppointment]));
-            }
+                const { error } = await updateAppointment(editingAppointment.id, updates);
 
-            setIsSubmitting(false);
+                if (error) {
+                    console.error('Error updating appointment:', error);
+                    setErrors({ general: 'Error al actualizar la cita. Por favor, intenta de nuevo.' });
+                    setIsSubmitting(false);
+                    return;
+                }
 
-            // Redirigir a la página de inicio después de editar o a confirmación después de crear
-            if (isEditMode) {
                 navigate('/', { state: { message: 'Cita actualizada exitosamente' } });
             } else {
+                // Crear nueva cita en Firebase
+                const appointmentData = {
+                    patientName,
+                    date: formData.fecha,
+                    time: formData.hora,
+                    reason: reasonLabel,
+                    clinica: formData.clinica,
+                    notas: formData.notas,
+                    status: 'programada'
+                };
+
+                const { appointmentId, error } = await createAppointment(user.uid, appointmentData);
+
+                if (error) {
+                    console.error('Error creating appointment:', error);
+                    setErrors({ general: 'Error al crear la cita. Por favor, intenta de nuevo.' });
+                    setIsSubmitting(false);
+                    return;
+                }
+
                 navigate('/cita-confirmada', { state: { appointment: formData } });
             }
-        }, 1500);
+        } catch (err) {
+            console.error('Unexpected error:', err);
+            setErrors({ general: 'Ocurrió un error inesperado. Por favor, intenta de nuevo.' });
+            setIsSubmitting(false);
+        }
     };
 
     // Obtener fecha mínima (hoy)
@@ -334,6 +343,13 @@ function AppointmentForm() {
                         </div>
                     </div>
                 </div>
+
+                {/* Display general errors */}
+                {errors.general && (
+                    <div className="error-message" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#fee', borderRadius: '8px', color: '#c00' }}>
+                        ⚠ {errors.general}
+                    </div>
+                )}
 
                 <button
                     type="submit"

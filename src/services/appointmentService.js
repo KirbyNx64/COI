@@ -1,0 +1,227 @@
+import {
+    collection,
+    addDoc,
+    getDoc,
+    getDocs,
+    updateDoc,
+    deleteDoc,
+    doc,
+    query,
+    where,
+    orderBy,
+    Timestamp,
+    onSnapshot
+} from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+
+/**
+ * Create a new appointment
+ * @param {string} userId - User's Firebase UID
+ * @param {object} appointmentData - Appointment data
+ * @returns {Promise<{appointmentId, error}>}
+ */
+export const createAppointment = async (userId, appointmentData) => {
+    try {
+        const appointment = {
+            userId,
+            patientName: appointmentData.patientName || '',
+            date: appointmentData.date || '',
+            time: appointmentData.time || '',
+            reason: appointmentData.reason || '',
+            clinica: appointmentData.clinica || '',
+            notas: appointmentData.notas || '',
+            status: appointmentData.status || 'programada',
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+        };
+
+        const docRef = await addDoc(collection(db, 'appointments'), appointment);
+        return { appointmentId: docRef.id, error: null };
+    } catch (error) {
+        console.error('Error creating appointment:', error);
+        return { appointmentId: null, error };
+    }
+};
+
+/**
+ * Get all appointments for a specific user
+ * @param {string} userId - User's Firebase UID
+ * @returns {Promise<{appointments, error}>}
+ */
+export const getAppointmentsByUser = async (userId) => {
+    try {
+        const q = query(
+            collection(db, 'appointments'),
+            where('userId', '==', userId)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const appointments = [];
+
+        querySnapshot.forEach((doc) => {
+            appointments.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        // Sort by date and time on client side
+        appointments.sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateA - dateB;
+        });
+
+        return { appointments, error: null };
+    } catch (error) {
+        console.error('Error getting appointments:', error);
+        return { appointments: [], error };
+    }
+};
+
+/**
+ * Listen to real-time updates for user's appointments
+ * @param {string} userId - User's Firebase UID
+ * @param {function} callback - Callback function to handle updates
+ * @returns {function} Unsubscribe function
+ */
+export const subscribeToUserAppointments = (userId, callback) => {
+    const q = query(
+        collection(db, 'appointments'),
+        where('userId', '==', userId)
+    );
+
+    return onSnapshot(q, (querySnapshot) => {
+        const appointments = [];
+        querySnapshot.forEach((doc) => {
+            appointments.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        // Sort by date and time
+        appointments.sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateA - dateB;
+        });
+
+        callback(appointments);
+    }, (error) => {
+        console.error('Error in appointments subscription:', error);
+        callback([]);
+    });
+};
+
+/**
+ * Update an appointment
+ * @param {string} appointmentId - Appointment document ID
+ * @param {object} updates - Fields to update
+ * @returns {Promise<{error}>}
+ */
+export const updateAppointment = async (appointmentId, updates) => {
+    try {
+        const appointmentRef = doc(db, 'appointments', appointmentId);
+        await updateDoc(appointmentRef, {
+            ...updates,
+            updatedAt: Timestamp.now()
+        });
+        return { error: null };
+    } catch (error) {
+        console.error('Error updating appointment:', error);
+        return { error };
+    }
+};
+
+/**
+ * Update appointment status
+ * @param {string} appointmentId - Appointment document ID
+ * @param {string} status - New status (programada, cancelada, terminada, perdida)
+ * @returns {Promise<{error}>}
+ */
+export const updateAppointmentStatus = async (appointmentId, status) => {
+    return updateAppointment(appointmentId, { status });
+};
+
+/**
+ * Delete an appointment
+ * @param {string} appointmentId - Appointment document ID
+ * @returns {Promise<{error}>}
+ */
+export const deleteAppointment = async (appointmentId) => {
+    try {
+        await deleteDoc(doc(db, 'appointments', appointmentId));
+        return { error: null };
+    } catch (error) {
+        console.error('Error deleting appointment:', error);
+        return { error };
+    }
+};
+
+/**
+ * Get a single appointment by ID
+ * @param {string} appointmentId - Appointment document ID
+ * @returns {Promise<{appointment, error}>}
+ */
+export const getAppointmentById = async (appointmentId) => {
+    try {
+        const docRef = doc(db, 'appointments', appointmentId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return {
+                appointment: {
+                    id: docSnap.id,
+                    ...docSnap.data()
+                },
+                error: null
+            };
+        } else {
+            return { appointment: null, error: new Error('Appointment not found') };
+        }
+    } catch (error) {
+        console.error('Error getting appointment:', error);
+        return { appointment: null, error };
+    }
+};
+
+/**
+ * Mark overdue appointments as lost
+ * This should be called periodically (e.g., on app load or every few minutes)
+ * @returns {Promise<{updatedCount, error}>}
+ */
+export const markOverdueAppointmentsAsLost = async () => {
+    try {
+        const q = query(
+            collection(db, 'appointments'),
+            where('status', '==', 'programada')
+        );
+
+        const querySnapshot = await getDocs(q);
+        const now = new Date();
+        let updatedCount = 0;
+
+        const updatePromises = [];
+
+        querySnapshot.forEach((docSnapshot) => {
+            const appointment = docSnapshot.data();
+            const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+            const twoHoursAfter = new Date(appointmentDateTime.getTime() + (2 * 60 * 60 * 1000));
+
+            if (now > twoHoursAfter) {
+                updatePromises.push(
+                    updateAppointmentStatus(docSnapshot.id, 'perdida')
+                );
+                updatedCount++;
+            }
+        });
+
+        await Promise.all(updatePromises);
+
+        return { updatedCount, error: null };
+    } catch (error) {
+        console.error('Error marking overdue appointments:', error);
+        return { updatedCount: 0, error };
+    }
+};

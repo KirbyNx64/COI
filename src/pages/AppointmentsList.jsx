@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebaseConfig';
+import { subscribeToUserAppointments, updateAppointmentStatus } from '../services/appointmentService';
 import ConfirmationModal from '../components/ConfirmationModal';
 import './AppointmentsList.css';
 
@@ -9,26 +11,29 @@ function AppointmentsList() {
     const [expandedId, setExpandedId] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [appointmentToCancel, setAppointmentToCancel] = useState(null);
-    const [userData, setUserData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Cargar datos del usuario actual
-        const storedUser = localStorage.getItem('userData');
-        if (storedUser) {
-            setUserData(JSON.parse(storedUser));
+        const user = auth.currentUser;
+        if (!user) {
+            setIsLoading(false);
+            return;
         }
 
-        // Cargar citas programadas desde localStorage
-        const storedAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-
-        // Ordenar citas por fecha y hora (más próxima primero)
-        const sortedAppointments = storedAppointments.sort((a, b) => {
-            const dateA = new Date(`${a.date} ${a.time}`);
-            const dateB = new Date(`${b.date} ${b.time}`);
-            return dateB - dateA;
+        // Subscribe to real-time updates from Firebase
+        const unsubscribe = subscribeToUserAppointments(user.uid, (appointments) => {
+            // Sort by date descending (most recent first)
+            const sortedAppointments = appointments.sort((a, b) => {
+                const dateA = new Date(`${a.date} ${a.time}`);
+                const dateB = new Date(`${b.date} ${b.time}`);
+                return dateB - dateA;
+            });
+            setAppointments(sortedAppointments);
+            setIsLoading(false);
         });
 
-        setAppointments(sortedAppointments);
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
     }, []);
 
     const getStatusLabel = (status) => {
@@ -61,33 +66,27 @@ function AppointmentsList() {
         setIsModalOpen(true);
     };
 
-    const confirmCancellation = () => {
+    const confirmCancellation = async () => {
         if (!appointmentToCancel) return;
 
-        // Obtener citas del localStorage
-        const storedAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+        try {
+            // Update appointment status in Firebase
+            const { error } = await updateAppointmentStatus(appointmentToCancel, 'cancelada');
 
-        // Actualizar el estado de la cita
-        const updatedAppointments = storedAppointments.map(apt =>
-            apt.id === appointmentToCancel ? { ...apt, status: 'cancelada' } : apt
-        );
+            if (error) {
+                console.error('Error cancelling appointment:', error);
+                alert('Error al cancelar la cita. Por favor, intenta de nuevo.');
+            }
 
-        // Guardar en localStorage
-        localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
-
-        // Ordenar citas actualizadas
-        const sortedAppointments = updatedAppointments.sort((a, b) => {
-            const dateA = new Date(`${a.date} ${a.time}`);
-            const dateB = new Date(`${b.date} ${b.time}`);
-            return dateB - dateA;
-        });
-
-        // Actualizar estado local
-        setAppointments(sortedAppointments);
-
-        // Cerrar modal y limpiar estado
-        setIsModalOpen(false);
-        setAppointmentToCancel(null);
+            // Close modal and clear state
+            setIsModalOpen(false);
+            setAppointmentToCancel(null);
+        } catch (err) {
+            console.error('Unexpected error:', err);
+            alert('Ocurrió un error inesperado. Por favor, intenta de nuevo.');
+            setIsModalOpen(false);
+            setAppointmentToCancel(null);
+        }
     };
 
     const handleEditAppointment = (appointment) => {
@@ -147,7 +146,7 @@ function AppointmentsList() {
                                         <div className="details-grid">
                                             <div className="detail-item">
                                                 <label>Paciente</label>
-                                                <p>{userData ? `${userData.nombres} ${userData.apellidos}`.trim() : 'Usuario'}</p>
+                                                <p>{appointment.patientName || 'Usuario'}</p>
                                             </div>
                                             <div className="detail-item">
                                                 <label>Hora</label>
@@ -161,6 +160,12 @@ function AppointmentsList() {
                                                 <label>Motivo</label>
                                                 <p>{appointment.reason || 'No especificado'}</p>
                                             </div>
+                                            {appointment.notas && appointment.notas.trim() && (
+                                                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                                                    <label>Notas</label>
+                                                    <p>{appointment.notas}</p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {appointment.status === 'programada' && (

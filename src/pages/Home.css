@@ -88,6 +88,35 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+.appointment-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.download-receipt-btn {
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--primary-color);
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.download-receipt-btn:hover {
+    background: var(--primary-light);
+    transform: scale(1.1);
+}
+
+.download-receipt-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 .appointment-icon {
     width: 40px;
     height: 40px;
@@ -441,5 +470,16 @@
     .btn-action {
         padding: 0.75rem 1rem;
         font-size: 0.95rem;
+    }
+}
+
+/* Spinner animation */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
     }
 }
