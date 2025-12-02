@@ -80,6 +80,27 @@ export const getAppointmentsByUser = async (userId) => {
 };
 
 /**
+ * Count scheduled appointments for a specific user
+ * @param {string} userId - User's Firebase UID
+ * @returns {Promise<{count, error}>}
+ */
+export const countScheduledAppointments = async (userId) => {
+    try {
+        const q = query(
+            collection(db, 'appointments'),
+            where('userId', '==', userId),
+            where('status', '==', 'programada')
+        );
+
+        const querySnapshot = await getDocs(q);
+        return { count: querySnapshot.size, error: null };
+    } catch (error) {
+        console.error('Error counting scheduled appointments:', error);
+        return { count: 0, error };
+    }
+};
+
+/**
  * Listen to real-time updates for user's appointments
  * @param {string} userId - User's Firebase UID
  * @param {function} callback - Callback function to handle updates

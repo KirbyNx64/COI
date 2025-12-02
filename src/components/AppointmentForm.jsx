@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebaseConfig';
-import { createAppointment, updateAppointment } from '../services/appointmentService';
+import { createAppointment, updateAppointment, countScheduledAppointments } from '../services/appointmentService';
 import './AppointmentForm.css';
 
 function AppointmentForm({ userData }) {
@@ -150,6 +150,24 @@ function AppointmentForm({ userData }) {
 
             const patientName = userData ? `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() : 'Paciente';
             const reasonLabel = motivosOptions.find(m => m.value === formData.motivo)?.label || formData.motivo;
+
+            // Check appointment limit only when creating a new appointment (not editing)
+            if (!isEditMode) {
+                const { count, error: countError } = await countScheduledAppointments(user.uid);
+
+                if (countError) {
+                    console.error('Error checking appointment limit:', countError);
+                    setErrors({ general: 'Error al verificar tus citas. Por favor, intenta de nuevo.' });
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                if (count >= 2) {
+                    setErrors({ general: 'Ya tienes 2 citas programadas. Debes cancelar o completar una cita existente antes de agendar una nueva.' });
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
 
             if (isEditMode) {
                 // Actualizar cita existente en Firebase
