@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebaseConfig';
-import { createAppointment, updateAppointment, countScheduledAppointments } from '../services/appointmentService';
+import { createAppointment, updateAppointment, countScheduledAppointments, getAvailableTimeSlots, hasAppointmentOnDate } from '../services/appointmentService';
 import './AppointmentForm.css';
+import './ConfirmationModal.css';
 
 function AppointmentForm({ userData }) {
     const navigate = useNavigate();
@@ -20,6 +21,10 @@ function AppointmentForm({ userData }) {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [availableHours, setAvailableHours] = useState([]);
+    const [loadingHours, setLoadingHours] = useState(false);
+    const [showWarningModal, setShowWarningModal] = useState(false);
+    const [warningMessage, setWarningMessage] = useState('');
 
     // Pre-llenar formulario si estamos editando
     useEffect(() => {
@@ -48,6 +53,43 @@ function AppointmentForm({ userData }) {
             });
         }
     }, [editingAppointment]);
+
+    // Load available hours when date and clinic are selected
+    useEffect(() => {
+        const loadAvailableHours = async () => {
+            if (formData.fecha && formData.clinica) {
+                setLoadingHours(true);
+
+                // In edit mode, pass the current time so it's included even if full
+                const currentTime = isEditMode ? editingAppointment?.time : null;
+
+                const { availableSlots, error } = await getAvailableTimeSlots(
+                    formData.fecha,
+                    formData.clinica,
+                    currentTime
+                );
+
+                if (error) {
+                    console.error('Error loading available hours:', error);
+                    setAvailableHours(horariosDisponibles); // Fallback to all hours
+                } else {
+                    setAvailableHours(availableSlots);
+
+                    // If selected hour is no longer available (and not in edit mode), clear it
+                    if (formData.hora && !availableSlots.includes(formData.hora) && !isEditMode) {
+                        setFormData(prev => ({ ...prev, hora: '' }));
+                    }
+                }
+
+                setLoadingHours(false);
+            } else {
+                // Reset to all hours if date or clinic not selected
+                setAvailableHours(horariosDisponibles);
+            }
+        };
+
+        loadAvailableHours();
+    }, [formData.fecha, formData.clinica, isEditMode, editingAppointment?.time]);
 
     const motivosOptions = [
         { value: '', label: 'Selecciona un motivo' },
@@ -106,13 +148,15 @@ function AppointmentForm({ userData }) {
         if (!formData.fecha) {
             newErrors.fecha = 'Por favor selecciona una fecha';
         } else {
-            // Validar que la fecha no sea en el pasado
+            // Validar que la fecha no sea en el pasado ni el día actual
             const selectedDate = new Date(formData.fecha + 'T00:00:00');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             if (selectedDate < today) {
                 newErrors.fecha = 'La fecha no puede ser en el pasado';
+            } else if (selectedDate.getTime() === today.getTime()) {
+                newErrors.fecha = 'No se pueden agendar citas para el día de hoy';
             }
 
             // Validar que no sea domingo (0 = domingo)
@@ -169,6 +213,23 @@ function AppointmentForm({ userData }) {
                 }
             }
 
+            // Check if user already has an appointment on the selected date
+            const excludeId = isEditMode ? editingAppointment.id : null;
+            const { hasAppointment, error: dateError } = await hasAppointmentOnDate(user.uid, formData.fecha, excludeId);
+
+            if (dateError) {
+                console.error('Error checking appointment on date:', dateError);
+                setErrors({ general: 'Error al verificar disponibilidad. Por favor, intenta de nuevo.' });
+                setIsSubmitting(false);
+                return;
+            }
+
+            if (hasAppointment) {
+                setErrors({ general: 'Ya tienes una cita programada para este día. No puedes agendar más de una cita por día.' });
+                setIsSubmitting(false);
+                return;
+            }
+
             if (isEditMode) {
                 // Actualizar cita existente en Firebase
                 const updates = {
@@ -219,8 +280,10 @@ function AppointmentForm({ userData }) {
         }
     };
 
-    // Obtener fecha mínima (hoy)
-    const today = new Date().toISOString().split('T')[0];
+    // Obtener fecha mínima (mañana - no se permite agendar el día de hoy)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
 
     return (
         <div className="appointment-form-container">
@@ -308,7 +371,7 @@ function AppointmentForm({ userData }) {
                                     if (!e.target.value) e.target.type = "text";
                                 }}
                                 placeholder="Selecciona una fecha"
-                                min={today}
+                                min={minDate}
                                 className={errors.fecha ? 'error' : ''}
                             />
                             {errors.fecha && (
@@ -326,9 +389,25 @@ function AppointmentForm({ userData }) {
                                 value={formData.hora}
                                 onChange={handleChange}
                                 className={`${errors.hora ? 'error' : ''} ${!formData.hora ? 'placeholder' : ''}`}
+                                disabled={loadingHours}
+                                onMouseDown={(e) => {
+                                    if (!formData.fecha || !formData.clinica) {
+                                        e.preventDefault();
+                                        setWarningMessage('Por favor, selecciona una clínica y una fecha antes de elegir la hora.');
+                                        setShowWarningModal(true);
+                                    }
+                                }}
                             >
-                                <option value="">Selecciona una hora</option>
-                                {horariosDisponibles.map(hora => (
+                                <option value="">
+                                    {loadingHours
+                                        ? 'Cargando horas disponibles...'
+                                        : !formData.fecha || !formData.clinica
+                                            ? 'Selecciona una hora'
+                                            : availableHours.length === 0
+                                                ? 'No hay horas disponibles'
+                                                : 'Selecciona una hora'}
+                                </option>
+                                {availableHours.map(hora => (
                                     <option key={hora} value={hora}>
                                         {hora}
                                     </option>
@@ -336,6 +415,11 @@ function AppointmentForm({ userData }) {
                             </select>
                             {errors.hora && (
                                 <span className="error-message">⚠ {errors.hora}</span>
+                            )}
+                            {formData.fecha && formData.clinica && !loadingHours && availableHours.length === 0 && (
+                                <span className="info-message" style={{ color: '#0066cc', fontSize: '0.9rem', marginTop: '0.25rem', display: 'block' }}>
+                                    ℹ️ Todas las horas están ocupadas para esta fecha. Por favor, selecciona otro día.
+                                </span>
                             )}
                         </div>
                     </div>
@@ -398,6 +482,23 @@ function AppointmentForm({ userData }) {
                     )}
                 </button>
             </form>
+
+            {/* Warning Modal */}
+            {showWarningModal && (
+                <div className="modal-overlay" onClick={() => setShowWarningModal(false)}>
+                    <div className="modal-content error-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="modal-title">Atención</h3>
+                        <p className="modal-message">
+                            {warningMessage}
+                        </p>
+                        <div className="modal-actions">
+                            <button className="modal-btn modal-btn-confirm" onClick={() => setShowWarningModal(false)}>
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

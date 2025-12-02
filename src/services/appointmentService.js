@@ -101,6 +101,42 @@ export const countScheduledAppointments = async (userId) => {
 };
 
 /**
+ * Check if user has an appointment on a specific date
+ * @param {string} userId - User's Firebase UID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {string} excludeAppointmentId - Optional appointment ID to exclude (for edit mode)
+ * @returns {Promise<{hasAppointment, error}>}
+ */
+export const hasAppointmentOnDate = async (userId, date, excludeAppointmentId = null) => {
+    try {
+        const q = query(
+            collection(db, 'appointments'),
+            where('userId', '==', userId),
+            where('date', '==', date),
+            where('status', '==', 'programada')
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        // If excluding an appointment (edit mode), check if there are other appointments
+        if (excludeAppointmentId) {
+            const otherAppointments = [];
+            querySnapshot.forEach((doc) => {
+                if (doc.id !== excludeAppointmentId) {
+                    otherAppointments.push(doc);
+                }
+            });
+            return { hasAppointment: otherAppointments.length > 0, error: null };
+        }
+
+        return { hasAppointment: querySnapshot.size > 0, error: null };
+    } catch (error) {
+        console.error('Error checking appointment on date:', error);
+        return { hasAppointment: false, error };
+    }
+};
+
+/**
  * Listen to real-time updates for user's appointments
  * @param {string} userId - User's Firebase UID
  * @param {function} callback - Callback function to handle updates
@@ -244,5 +280,76 @@ export const markOverdueAppointmentsAsLost = async () => {
     } catch (error) {
         console.error('Error marking overdue appointments:', error);
         return { updatedCount: 0, error };
+    }
+};
+
+/**
+ * Get count of appointments for a specific date, time, and clinic
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {string} time - Time in format like "2:00 PM"
+ * @param {string} clinica - Clinic identifier
+ * @returns {Promise<{count, error}>}
+ */
+export const getAppointmentCountByDateTime = async (date, time, clinica) => {
+    try {
+        const q = query(
+            collection(db, 'appointments'),
+            where('date', '==', date),
+            where('time', '==', time),
+            where('clinica', '==', clinica),
+            where('status', '==', 'programada')
+        );
+
+        const querySnapshot = await getDocs(q);
+        return { count: querySnapshot.size, error: null };
+    } catch (error) {
+        console.error('Error counting appointments by date/time:', error);
+        return { count: 0, error };
+    }
+};
+
+/**
+ * Get available time slots for a specific date and clinic
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {string} clinica - Clinic identifier
+ * @param {string} currentTime - Optional current time to include even if full (for edit mode)
+ * @returns {Promise<{availableSlots, error}>}
+ */
+export const getAvailableTimeSlots = async (date, clinica, currentTime = null) => {
+    try {
+        const allTimeSlots = [
+            '7:30 AM', '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+            '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM'
+        ];
+
+        // Fetch all scheduled appointments for the date and clinic
+        const q = query(
+            collection(db, 'appointments'),
+            where('date', '==', date),
+            where('clinica', '==', clinica),
+            where('status', '==', 'programada')
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        // Count appointments per time slot
+        const timeCounts = {};
+        querySnapshot.forEach((doc) => {
+            const appointment = doc.data();
+            const time = appointment.time;
+            timeCounts[time] = (timeCounts[time] || 0) + 1;
+        });
+
+        // Filter available slots
+        const availableSlots = allTimeSlots.filter(timeSlot => {
+            const count = timeCounts[timeSlot] || 0;
+            // Include slot if it has less than 2 appointments, or if it's the current time in edit mode
+            return count < 2 || timeSlot === currentTime;
+        });
+
+        return { availableSlots, error: null };
+    } catch (error) {
+        console.error('Error getting available time slots:', error);
+        return { availableSlots: [], error };
     }
 };
