@@ -106,13 +106,22 @@ function Header({ onLogout, userData, userType }) {
               {isProfileMenuOpen && (
                 <div className="profile-dropdown">
                   {!isStaff && (
-                    <Link
-                      to="/perfil"
-                      className="dropdown-item"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      Perfil
-                    </Link>
+                    <>
+                      <Link
+                        to="/perfil"
+                        className="dropdown-item"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        Perfil
+                      </Link>
+                      <Link
+                        to="/notificaciones"
+                        className="dropdown-item"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        Notificaciones
+                      </Link>
+                    </>
                   )}
                   <button className="dropdown-item logout" onClick={onLogout}>Cerrar sesión</button>
                 </div>

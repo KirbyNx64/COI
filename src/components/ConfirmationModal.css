@@ -119,3 +119,33 @@
     flex: 0 1 auto;
     min-width: 120px;
 }
+
+/* Error Modal Specific Styles */
+.error-modal .modal-title {
+    color: #dc2626;
+}
+
+.error-modal .modal-message {
+    text-align: center;
+    color: #4b5563;
+}
+
+.error-modal .modal-btn-confirm {
+    background-color: #dc2626;
+    /* Red for error */
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.error-modal .modal-btn-confirm:hover {
+    background-color: #b91c1c;
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+}
+
+.error-modal .modal-actions {
+    justify-content: center;
+}
+
+.error-modal .modal-btn {
+    flex: 0 1 auto;
+    min-width: 120px;
+}

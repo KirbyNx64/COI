@@ -14,6 +14,8 @@ const Login = ({ onLogin }) => {
     const [resetEmail, setResetEmail] = useState('');
     const [resetMessage, setResetMessage] = useState('');
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorModalMessage, setErrorModalMessage] = useState('');
 
     // Step 1 Data
     const [email, setEmail] = useState('');
@@ -92,18 +94,24 @@ const Login = ({ onLogin }) => {
 
                     if (Object.keys(errors).length > 0) {
                         setFieldErrors(errors);
+                        setErrorModalMessage('Por favor, revisa los campos marcados en rojo.');
+                        setShowErrorModal(true);
                         setIsLoading(false);
                         return;
                     }
 
                     if (password.length < 6) {
-                        setError('La contraseña debe tener al menos 6 caracteres.');
+                        setFieldErrors({ password: 'La contraseña debe tener al menos 6 caracteres' });
+                        setErrorModalMessage('Por favor, revisa los campos marcados en rojo.');
+                        setShowErrorModal(true);
                         setIsLoading(false);
                         return;
                     }
 
                     if (password !== confirmPassword) {
-                        setError('Las contraseñas no coinciden.');
+                        setFieldErrors({ confirmPassword: 'Las contraseñas no coinciden' });
+                        setErrorModalMessage('Por favor, revisa los campos marcados en rojo.');
+                        setShowErrorModal(true);
                         setIsLoading(false);
                         return;
                     }
@@ -123,8 +131,26 @@ const Login = ({ onLogin }) => {
                     if (!emergenciaTelefono) errors.emergenciaTelefono = 'Ingresa el teléfono del contacto';
                     if (!emergenciaParentesco) errors.emergenciaParentesco = 'Selecciona el parentesco';
 
+                    // Validate minimum age of 18 years
+                    if (fechaNacimiento) {
+                        const birthDate = new Date(fechaNacimiento);
+                        const today = new Date();
+                        let age = today.getFullYear() - birthDate.getFullYear();
+                        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                            age--;
+                        }
+
+                        if (age < 18) {
+                            errors.fechaNacimiento = 'Debes tener al menos 18 años para registrarte';
+                        }
+                    }
+
                     if (Object.keys(errors).length > 0) {
                         setFieldErrors(errors);
+                        setErrorModalMessage('Por favor, revisa los campos marcados en rojo.');
+                        setShowErrorModal(true);
                         setIsLoading(false);
                         return;
                     }
@@ -567,6 +593,23 @@ const Login = ({ onLogin }) => {
                             </p>
                             <div className="modal-actions">
                                 <button className="modal-btn modal-btn-confirm" onClick={handleSuccessModalClose}>
+                                    Aceptar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Error Modal */}
+                {showErrorModal && (
+                    <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
+                        <div className="modal-content error-modal" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="modal-title">Error en el formulario</h3>
+                            <p className="modal-message">
+                                {errorModalMessage}
+                            </p>
+                            <div className="modal-actions">
+                                <button className="modal-btn modal-btn-confirm" onClick={() => setShowErrorModal(false)}>
                                     Aceptar
                                 </button>
                             </div>
