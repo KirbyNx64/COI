@@ -39,6 +39,11 @@ const Login = ({ onLogin }) => {
     // Patient Type
     const [tipoPaciente, setTipoPaciente] = useState('primera-vez');
 
+    // Password visibility toggles
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [showResetPasswordField, setShowResetPasswordField] = useState(false);
+
     const validateField = (name, value) => {
         if (value) {
             setFieldErrors(prev => ({ ...prev, [name]: '' }));
@@ -145,6 +150,19 @@ const Login = ({ onLogin }) => {
                         if (age < 18) {
                             errors.fechaNacimiento = 'Debes tener al menos 18 años para registrarte';
                         }
+                    }
+
+                    // Validate phone numbers (exactly 8 digits)
+                    if (telefono && telefono.length !== 8) {
+                        errors.telefono = 'El teléfono debe tener exactamente 8 dígitos';
+                    }
+                    if (emergenciaTelefono && emergenciaTelefono.length !== 8) {
+                        errors.emergenciaTelefono = 'El teléfono debe tener exactamente 8 dígitos';
+                    }
+
+                    // Validate DUI format (must be complete: ########-#)
+                    if (dui && dui.length !== 10) {
+                        errors.dui = 'El DUI debe tener el formato completo (########-#)';
                     }
 
                     if (Object.keys(errors).length > 0) {
@@ -320,30 +338,70 @@ const Login = ({ onLogin }) => {
 
                             <div className="form-group">
                                 <label htmlFor="password">Contraseña</label>
-                                <input
-                                    type="password"
-                                    id="password"
-                                    value={password}
-                                    onChange={(e) => { setPassword(e.target.value); validateField('password', e.target.value); }}
-                                    placeholder="••••••••"
-                                    className={fieldErrors.password ? 'input-error' : ''}
-                                    required
-                                />
+                                <div className="password-input-wrapper">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        id="password"
+                                        value={password}
+                                        onChange={(e) => { setPassword(e.target.value); validateField('password', e.target.value); }}
+                                        placeholder="••••••••"
+                                        className={fieldErrors.password ? 'input-error' : ''}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                    >
+                                        {showPassword ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                                            </svg>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
                                 {fieldErrors.password && <span className="field-error-message">{fieldErrors.password}</span>}
                             </div>
 
                             {!isLoginView && (
                                 <div className="form-group">
                                     <label htmlFor="confirmPassword">Confirmar Contraseña</label>
-                                    <input
-                                        type="password"
-                                        id="confirmPassword"
-                                        value={confirmPassword}
-                                        onChange={(e) => { setConfirmPassword(e.target.value); validateField('confirmPassword', e.target.value); }}
-                                        placeholder="••••••••"
-                                        className={fieldErrors.confirmPassword ? 'input-error' : ''}
-                                        required
-                                    />
+                                    <div className="password-input-wrapper">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            id="confirmPassword"
+                                            value={confirmPassword}
+                                            onChange={(e) => { setConfirmPassword(e.target.value); validateField('confirmPassword', e.target.value); }}
+                                            placeholder="••••••••"
+                                            className={fieldErrors.confirmPassword ? 'input-error' : ''}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="password-toggle"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                        >
+                                            {showConfirmPassword ? (
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                                </svg>
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
                                     {fieldErrors.confirmPassword && <span className="field-error-message">{fieldErrors.confirmPassword}</span>}
                                 </div>
                             )}
