@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { onAuthChange, getUserProfile, signOut as firebaseSignOut } from './services/authService';
+import { markOverdueAppointmentsAsLost } from './services/appointmentService';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -175,7 +176,6 @@ function App() {
 
     // Check for overdue appointments using Firebase
     const checkOverdueAppointments = async () => {
-      const { markOverdueAppointmentsAsLost } = await import('./services/appointmentService');
       await markOverdueAppointmentsAsLost();
     };
 

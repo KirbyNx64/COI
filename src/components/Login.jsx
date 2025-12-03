@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Login.css';
 import './ConfirmationModal.css';
-import { signUp, signIn, resetPassword } from '../services/authService';
+import { signUp, signIn, resetPassword, signOut } from '../services/authService';
 import ConfirmationModal from './ConfirmationModal';
 
 const Login = ({ onLogin }) => {
@@ -226,7 +226,6 @@ const Login = ({ onLogin }) => {
         sessionStorage.removeItem('justRegistered');
 
         // Sign out the user to prevent auto-login
-        const { signOut } = await import('../services/authService');
         await signOut();
 
         setIsLoginView(true);
