@@ -2,8 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebaseConfig';
 import { createAppointment, updateAppointment, countScheduledAppointments, getAvailableTimeSlots, hasAppointmentOnDate } from '../services/appointmentService';
+import DatePicker from 'react-datepicker';
+import { registerLocale } from 'react-datepicker';
+import { es } from 'date-fns/locale/es';
+import 'react-datepicker/dist/react-datepicker.css';
 import './AppointmentForm.css';
 import './ConfirmationModal.css';
+
+registerLocale('es', es);
 
 function AppointmentForm({ userData }) {
     const navigate = useNavigate();
@@ -119,6 +125,18 @@ function AppointmentForm({ userData }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        // Check if selecting a Sunday for the date field
+        if (name === 'fecha' && value) {
+            const selectedDate = new Date(value + 'T00:00:00');
+            if (selectedDate.getDay() === 0) {
+                // Show warning and don't update the date
+                setWarningMessage('No se pueden agendar citas los domingos. Por favor, selecciona otro día.');
+                setShowWarningModal(true);
+                return;
+            }
+        }
+
         setFormData(prev => ({
             ...prev,
             [name]: value
@@ -357,23 +375,43 @@ function AppointmentForm({ userData }) {
                             <label htmlFor="fecha">
                                 Fecha de la cita <span className="required">*</span>
                             </label>
-                            <input
-                                type="text"
-                                id="fecha"
-                                name="fecha"
-                                value={formData.fecha}
-                                onChange={handleChange}
-                                onFocus={(e) => {
-                                    e.target.type = "date";
-                                    e.target.showPicker && e.target.showPicker();
+                            <DatePicker
+                                selected={formData.fecha ? new Date(formData.fecha + 'T00:00:00') : null}
+                                onChange={(date) => {
+                                    if (date) {
+                                        // Check if it's a Sunday
+                                        if (date.getDay() === 0) {
+                                            setWarningMessage('No se pueden agendar citas los domingos. Por favor, selecciona otro día.');
+                                            setShowWarningModal(true);
+                                            return;
+                                        }
+
+                                        const year = date.getFullYear();
+                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                        const day = String(date.getDate()).padStart(2, '0');
+                                        const formattedDate = `${year}-${month}-${day}`;
+
+                                        setFormData(prev => ({ ...prev, fecha: formattedDate }));
+                                        if (errors.fecha) {
+                                            setErrors(prev => ({ ...prev, fecha: '' }));
+                                        }
+                                    } else {
+                                        setFormData(prev => ({ ...prev, fecha: '' }));
+                                    }
                                 }}
-                                onBlur={(e) => {
-                                    if (!e.target.value) e.target.type = "text";
-                                }}
-                                placeholder="Selecciona una fecha"
-                                min={minDate}
-                                className={errors.fecha ? 'error' : ''}
+                                minDate={tomorrow}
+                                filterDate={(date) => date.getDay() !== 0} // Block Sundays
+                                dateFormat="dd/MM/yyyy"
+                                locale="es"
+                                placeholderText="Selecciona una fecha"
+                                className={`date-picker-input ${errors.fecha ? 'error' : ''}`}
+                                calendarClassName="custom-calendar"
+                                autoComplete="off"
+                                onChangeRaw={(e) => e.preventDefault()}
                             />
+                            {!formData.fecha && !errors.fecha && (
+                                <span className="field-hint">Haz clic para seleccionar una fecha</span>
+                            )}
                             {errors.fecha && (
                                 <span className="error-message">⚠ {errors.fecha}</span>
                             )}
@@ -461,7 +499,7 @@ function AppointmentForm({ userData }) {
                     {isSubmitting ? (
                         <>
                             <span className="spinner"></span>
-                            Procesando...
+                            Agendando...
                         </>
                     ) : isEditMode ? (
                         <>

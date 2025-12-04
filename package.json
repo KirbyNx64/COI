@@ -16,9 +16,11 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
     "appwrite": "^21.4.0",
+    "date-fns": "^4.1.0",
     "firebase": "^12.6.0",
     "jspdf": "^3.0.4",
     "react": "^19.2.0",
+    "react-datepicker": "^8.10.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6"
   },
