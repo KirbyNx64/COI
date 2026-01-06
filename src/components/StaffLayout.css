@@ -1,0 +1,318 @@
+/* Staff Layout with Sidebar */
+.staff-layout {
+    display: flex;
+    min-height: 100vh;
+    background: #f8fafc;
+}
+
+/* Sidebar Styles */
+.staff-sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #1e3a5f 0%, #2c5282 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.logo svg {
+    width: 40px;
+    height: 40px;
+}
+
+.logo span {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.user-info {
+    margin-top: 1rem;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.25rem 0;
+}
+
+.staff-sidebar .user-name {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.781) !important;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+    flex: 1;
+    padding: 1rem 0;
+    overflow-y: auto;
+}
+
+.nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.nav-item.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    border-left-color: #60a5fa;
+}
+
+.nav-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nav-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.nav-label {
+    font-weight: 500;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.logout-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Main Content Area */
+.staff-content {
+    flex: 1;
+    margin-left: 260px;
+    min-height: 100vh;
+}
+
+/* Mobile Header - Hidden on Desktop */
+.mobile-header {
+    display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .staff-sidebar {
+        width: 220px;
+    }
+
+    .staff-content {
+        margin-left: 220px;
+    }
+}
+
+/* Mobile Bottom Navigation */
+@media (max-width: 768px) {
+    .staff-layout {
+        flex-direction: column;
+    }
+
+    /* Show Mobile Header */
+    .mobile-header {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(180deg, #1e3a5f 0%, #2c5282 100%);
+        color: white;
+        z-index: 999;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .mobile-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .mobile-title h2 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0;
+        color: white;
+    }
+
+    .mobile-user-info {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0.25rem 0 0 0;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .mobile-user-role {
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .mobile-user-name {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+    }
+
+    .mobile-logout-button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .mobile-logout-button:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .mobile-logout-button svg {
+        width: 20px;
+        height: 20px;
+        stroke: white;
+    }
+
+    .staff-sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        flex-direction: column-reverse;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+
+    .sidebar-header {
+        display: none;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 0.5rem 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .nav-item {
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem;
+        min-width: auto;
+        flex: 1;
+        text-align: center;
+        border-left: none;
+        border-bottom: none;
+        border-top: 3px solid transparent;
+    }
+
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-item.active {
+        border-left-color: transparent;
+        border-bottom-color: transparent;
+        border-top-color: #60a5fa;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .nav-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .nav-label {
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .staff-content {
+        margin-left: 0;
+        margin-top: 70px;
+        margin-bottom: 70px;
+        padding: 1rem;
+    }
+}

@@ -13,7 +13,7 @@
     border-radius: 24px;
     border: 1px solid #e2e8f0;
     width: 100%;
-    max-width: 420px;
+    max-width: 550px;
     text-align: center;
     position: relative;
 }
@@ -58,10 +58,87 @@
     color: #718096;
 }
 
+/* Mode Toggle */
+.mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background-color: #f1f5f9;
+    padding: 0.5rem;
+    border-radius: 12px;
+}
+
+.mode-button {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-button.active {
+    background-color: white;
+    color: #007bff;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.mode-button:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Success Message Banner */
+.success-message-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    animation: slideDown 0.3s ease-out;
+}
+
+.success-message-banner svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Forms */
 .staff-login-form {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+}
+
+.staff-register-form {
+    gap: 1.25rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
 }
 
 .staff-login-form .form-group {
@@ -76,7 +153,8 @@
     font-size: 0.95rem;
 }
 
-.staff-login-form input {
+.staff-login-form input,
+.staff-login-form select {
     width: 100%;
     padding: 0.875rem 1rem;
     border: 2px solid #e2e8f0;
@@ -86,15 +164,26 @@
     background-color: #f8fafc;
 }
 
-.staff-login-form input:focus {
+.staff-login-form input:focus,
+.staff-login-form select:focus {
     outline: none;
     border-color: #007bff;
     background-color: white;
 }
 
+.staff-login-form input:disabled,
+.staff-login-form select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .staff-login-form input.input-error {
     border-color: #e53e3e;
     background-color: #fff5f5;
+}
+
+.form-select {
+    cursor: pointer;
 }
 
 .field-error-message {
@@ -113,11 +202,13 @@
     font-size: 0.875rem;
     text-align: left;
     background-color: #fff5f5;
-    padding: 0.5rem;
-    border-radius: 6px;
-    margin-top: -0.5rem;
+    padding: 0.875rem;
+    border-radius: 8px;
+    margin: 0;
+    border-left: 4px solid #e53e3e;
 }
 
+/* Button */
 .staff-login-button {
     width: 100%;
     background-color: #007bff;
@@ -128,16 +219,43 @@
     font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s;
-    margin-top: 1rem;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
-.staff-login-button:hover {
+.staff-login-button:hover:not(:disabled) {
     background-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
-.staff-login-button:active {
-    transform: none;
+.staff-login-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.staff-login-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .staff-login-info {
@@ -188,7 +306,7 @@
     }
 
     .staff-login-card {
-        padding: 2.5rem 2rem;
+        padding: 2.5rem 1.5rem;
         max-width: 100%;
     }
 
@@ -211,5 +329,19 @@
 
     .staff-login-form {
         gap: 1.25rem;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .mode-toggle {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .mode-button {
+        width: 100%;
     }
 }

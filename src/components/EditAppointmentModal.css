@@ -1,0 +1,380 @@
+/* Edit Appointment Modal Styles */
+
+.edit-appointment-modal {
+    max-width: 700px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.edit-appointment-modal .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.edit-appointment-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.edit-appointment-modal .modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 2rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.edit-appointment-modal .modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.edit-appointment-form {
+    padding: 2rem;
+}
+
+/* Read-only Section */
+.readonly-section {
+    background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid #c7d2fe;
+}
+
+.readonly-section h3 {
+    color: #5b21b6;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.readonly-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.readonly-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.readonly-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.readonly-item label {
+    font-size: 0.85rem;
+    color: #6b21a8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.readonly-item span {
+    font-size: 1rem;
+    color: #1f2937;
+    font-weight: 500;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+}
+
+/* Form Sections */
+.edit-appointment-form .form-section {
+    margin-bottom: 1.5rem;
+}
+
+.edit-appointment-form .form-section h3 {
+    color: #1f2937;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.edit-appointment-form .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.edit-appointment-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.edit-appointment-form label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.95rem;
+}
+
+.edit-appointment-form .required {
+    color: #dc2626;
+    margin-left: 0.25rem;
+}
+
+.edit-appointment-form select,
+.edit-appointment-form textarea {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: white;
+    width: 100%;
+}
+
+.edit-appointment-form select:focus,
+.edit-appointment-form textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.edit-appointment-form select.error,
+.edit-appointment-form textarea.error,
+.edit-appointment-form .date-picker-input.error {
+    border-color: #dc2626;
+}
+
+.edit-appointment-form select.placeholder {
+    color: #9ca3af;
+}
+
+.edit-appointment-form textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* DatePicker Styling */
+.edit-appointment-form .date-picker-input {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: white;
+    width: 100%;
+    cursor: pointer;
+}
+
+.edit-appointment-form .date-picker-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Error and Hint Messages */
+.edit-appointment-form .error-message {
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.edit-appointment-form .field-hint {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+/* Modal Actions */
+.edit-appointment-modal .modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.edit-appointment-modal .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 140px;
+    justify-content: center;
+}
+
+.edit-appointment-modal .btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.edit-appointment-modal .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.edit-appointment-modal .btn-secondary:hover:not(:disabled) {
+    background: #e5e7eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.edit-appointment-modal .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.edit-appointment-modal .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.edit-appointment-modal .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Spinner */
+.edit-appointment-modal .spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .edit-appointment-modal {
+        width: 95%;
+        max-height: 95vh;
+        border-radius: 15px;
+    }
+
+    .edit-appointment-modal .modal-header {
+        padding: 1rem 1.5rem;
+        border-radius: 15px 15px 0 0;
+    }
+
+    .edit-appointment-modal .modal-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .edit-appointment-form {
+        padding: 1.5rem;
+    }
+
+    .edit-appointment-form .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .readonly-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .edit-appointment-modal .modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .edit-appointment-modal .btn {
+        width: 100%;
+    }
+}
+
+/* Custom Calendar Styles (from AppointmentForm) */
+.custom-calendar {
+    font-family: inherit;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.custom-calendar .react-datepicker__header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding-top: 1rem;
+}
+
+.custom-calendar .react-datepicker__current-month,
+.custom-calendar .react-datepicker__day-name {
+    color: white;
+}
+
+.custom-calendar .react-datepicker__day--selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.custom-calendar .react-datepicker__day--keyboard-selected {
+    background: rgba(102, 126, 234, 0.2);
+    color: #374151;
+}
+
+.custom-calendar .react-datepicker__day:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.custom-calendar .react-datepicker__day--disabled {
+    color: #d1d5db;
+    cursor: not-allowed;
+}
+
+.custom-calendar .react-datepicker__day--disabled:hover {
+    background: transparent;
+}

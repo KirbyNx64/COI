@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { onAuthChange, getUserProfile, signOut as firebaseSignOut } from './services/authService';
+import { getStaffProfile } from './services/staffService';
 import { markOverdueAppointmentsAsLost } from './services/appointmentService';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -13,14 +14,17 @@ import AppointmentForm from './components/AppointmentForm';
 import WhatsAppButton from './components/WhatsAppButton';
 import Login from './components/Login';
 import StaffLogin from './components/StaffLogin';
+import StaffLayout from './components/StaffLayout';
 import StaffDashboard from './pages/StaffDashboard';
+import PatientsManagement from './pages/PatientsManagement';
+import StaffAppointments from './pages/StaffAppointments';
 import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
 
 function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLogout, isStaff, isLoading }) {
   const location = useLocation();
-  const isStaffPage = location.pathname === '/staff/login' || location.pathname === '/staff/dashboard';
+  const isStaffPage = location.pathname.startsWith('/staff');
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -33,7 +37,8 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
 
   return (
     <>
-      {isAuthenticated && <Header onLogout={handleLogout} userData={userData} userType={userType} />}
+      {/* Only show header for authenticated patients, not for staff */}
+      {isAuthenticated && userType === 'patient' && <Header onLogout={handleLogout} userData={userData} userType={userType} />}
 
       <main className="main-content">
         <Routes>
@@ -68,7 +73,37 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
             path="/staff/dashboard"
             element={
               isAuthenticated && isStaff ? (
-                <StaffDashboard userType={userType} userData={userData} />
+                <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
+                  <StaffDashboard userType={userType} userData={userData} />
+                </StaffLayout>
+              ) : (
+                <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
+              )
+            }
+          />
+
+          {/* Staff Patients Management - only accessible for staff */}
+          <Route
+            path="/staff/patients"
+            element={
+              isAuthenticated && isStaff ? (
+                <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
+                  <PatientsManagement />
+                </StaffLayout>
+              ) : (
+                <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
+              )
+            }
+          />
+
+          {/* Staff Appointments - only accessible for staff */}
+          <Route
+            path="/staff/appointments"
+            element={
+              isAuthenticated && isStaff ? (
+                <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
+                  <StaffAppointments />
+                </StaffLayout>
               ) : (
                 <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
               )
@@ -130,7 +165,20 @@ function App() {
           return;
         }
 
-        // User is signed in, load their profile with retry logic
+        // Try to load profile from staff collection first
+        let staffResult = await getStaffProfile(user.uid);
+
+        if (staffResult.profile) {
+          // User is staff member
+          console.log('Staff profile loaded:', staffResult.profile);
+          setUserData(staffResult.profile);
+          setUserType(staffResult.profile.role); // 'admin' or 'doctor'
+          setIsAuthenticated(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // If not staff, try to load from users collection (patient)
         let retries = 3;
         let profile = null;
         let error = null;
@@ -148,6 +196,7 @@ function App() {
         }
 
         if (profile) {
+          console.log('Patient profile loaded:', profile);
           setUserData(profile);
           setUserType('patient');
           setIsAuthenticated(true);
@@ -188,7 +237,16 @@ function App() {
     };
   }, []);
 
-  const handleLogin = async (user) => {
+  const handleLogin = async (user, staffProfile = null) => {
+    // If staffProfile is provided, this is a staff login
+    if (staffProfile) {
+      setUserData(staffProfile);
+      setUserType(staffProfile.role); // 'admin' or 'doctor'
+      setIsAuthenticated(true);
+      return;
+    }
+
+    // Otherwise, this is a patient login
     // User is already authenticated via Firebase
     // Just load their profile data
     const { profile, error } = await getUserProfile(user.uid);

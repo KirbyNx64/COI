@@ -1,0 +1,602 @@
+.patients-management {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.patients-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.patients-header h1 {
+    font-size: 2rem;
+    color: #1e3a5f;
+    margin: 0 0 0.5rem 0;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-icon {
+    width: 40px;
+    height: 40px;
+    color: #2c5282;
+}
+
+.subtitle {
+    font-size: 1rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.patients-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    max-width: 500px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.2s;
+    background-color: #f8fafc;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #2c5282;
+    background-color: white;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: #64748b;
+    pointer-events: none;
+}
+
+.patients-count {
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 600;
+    padding: 0.875rem 1.5rem;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+/* Loading and Error States */
+.loading-container,
+.error-container,
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #2c5282;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.error-message {
+    color: #e53e3e;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.retry-button,
+.clear-search-button {
+    padding: 0.75rem 1.5rem;
+    background: #2c5282;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.retry-button:hover,
+.clear-search-button:hover {
+    background: #1e3a5f;
+}
+
+/* Table Styles */
+.patients-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.patients-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.patients-table thead {
+    background: linear-gradient(135deg, #2c5282 0%, #1e3a5f 100%);
+    color: white;
+}
+
+.patients-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+}
+
+.patients-table tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    transition: background-color 0.2s;
+}
+
+.patients-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.patients-table td {
+    padding: 1rem;
+    font-size: 0.95rem;
+    color: #1e3a5f;
+}
+
+.patient-name {
+    font-weight: 600;
+    color: #2c5282;
+}
+
+.patient-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.patient-type.primera-vez {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.patient-type.subsecuente {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.view-button {
+    padding: 0.5rem 1rem;
+    background: #2c5282;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-button:hover {
+    background: #1e3a5f;
+}
+
+/* Patient Detail Modal */
+.patient-detail-modal {
+    max-width: 800px;
+}
+
+/* Patients Management Page */
+.patients-management {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.patients-header {
+    margin-bottom: 2rem;
+}
+
+.patient-detail-content {
+    padding: 2rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.detail-section {
+    margin-bottom: 2rem;
+}
+
+.detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.detail-section h3 {
+    font-size: 1.25rem;
+    color: #1e3a5f;
+    margin: 0 0 1rem 0;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.detail-item label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.detail-item span {
+    font-size: 1rem;
+    color: #1e3a5f;
+}
+
+.modal-actions {
+    padding: 1.5rem 2rem;
+    border-top: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.close-button {
+    padding: 0.75rem 2rem;
+    background: #e2e8f0;
+    color: #1e3a5f;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.close-button:hover {
+    background: #cbd5e0;
+}
+
+/* Edit Mode Styles */
+.edit-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #1e3a5f;
+    transition: all 0.2s;
+}
+
+.edit-input:focus {
+    outline: none;
+    border-color: #2c5282;
+    background: #f8fafc;
+}
+
+.readonly-field {
+    color: #64748b;
+    font-style: italic;
+}
+
+.edit-button {
+    padding: 0.75rem 2rem;
+    background: #2c5282;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.edit-button:hover {
+    background: #1e3a5f;
+}
+
+.edit-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.save-button {
+    padding: 0.75rem 2rem;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.save-button:hover {
+    background: #059669;
+}
+
+.save-button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.cancel-button {
+    padding: 0.75rem 2rem;
+    background: #e2e8f0;
+    color: #1e3a5f;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-button:hover {
+    background: #cbd5e0;
+}
+
+.cancel-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.save-error-message {
+    padding: 1rem;
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    border-radius: 8px;
+    color: #991b1b;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.modal-close:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Schedule Appointment Button */
+.schedule-appointment-button {
+    padding: 0.75rem 2rem;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.schedule-appointment-button:hover {
+    background: #059669;
+}
+
+.calendar-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Appointment Modal */
+.appointment-modal {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+}
+
+.appointment-modal .modal-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.appointment-modal .appointment-form-container {
+    padding: 0;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+.appointment-modal .form-header {
+    padding: 1.5rem 2rem 0;
+}
+
+.appointment-modal .appointment-form {
+    padding: 0 2rem 2rem;
+}
+
+.appointment-modal .form-actions {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 1rem 0;
+    margin-top: 1rem;
+    border-top: 2px solid #e2e8f0;
+}
+
+/* Success Modal */
+.success-modal {
+    max-width: 450px;
+    text-align: center;
+    padding: 2.5rem 2rem;
+}
+
+.success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: successPulse 0.6s ease-out;
+}
+
+.success-icon svg {
+    width: 48px;
+    height: 48px;
+    color: white;
+    stroke-width: 3;
+}
+
+@keyframes successPulse {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.success-modal h3 {
+    font-size: 1.5rem;
+    color: #1e3a5f;
+    margin: 0 0 0.75rem 0;
+    font-weight: 700;
+}
+
+.success-modal p {
+    color: #64748b;
+    font-size: 1rem;
+    margin: 0 0 2rem 0;
+    line-height: 1.5;
+}
+
+.success-button {
+    padding: 0.875rem 2.5rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.success-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.success-button:active {
+    transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .patients-table-container {
+        overflow-x: auto;
+    }
+
+    .patients-table {
+        min-width: 800px;
+    }
+}
+
+@media (max-width: 768px) {
+    .patients-management {
+        padding: 1rem;
+    }
+
+    .patients-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .patients-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-box {
+        max-width: none;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .patient-detail-content {
+        padding: 1.5rem;
+    }
+
+    .modal-actions {
+        padding: 1rem 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .schedule-appointment-button,
+    .edit-button,
+    .close-button {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .appointment-modal {
+        max-width: 95vw;
+    }
+}

@@ -353,3 +353,195 @@ export const getAvailableTimeSlots = async (date, clinica, currentTime = null) =
         return { availableSlots: [], error };
     }
 };
+
+/**
+ * Create appointment on behalf of a patient (staff privilege)
+ * @param {string} patientId - Patient's user ID
+ * @param {object} appointmentData - Appointment data
+ * @param {string} staffId - Staff member's ID who is creating the appointment
+ * @returns {Promise<{appointmentId, error}>}
+ */
+export const createAppointmentForPatient = async (patientId, appointmentData, staffId) => {
+    try {
+        const appointment = {
+            userId: patientId,
+            patientName: appointmentData.patientName || '',
+            date: appointmentData.date || '',
+            time: appointmentData.time || '',
+            reason: appointmentData.reason || '',
+            clinica: appointmentData.clinica || '',
+            notas: appointmentData.notas || '',
+            status: appointmentData.status || 'programada',
+            createdBy: staffId, // Track who created this appointment
+            createdByStaff: true, // Flag to indicate staff-created appointment
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+        };
+
+        const docRef = await addDoc(collection(db, 'appointments'), appointment);
+        return { appointmentId: docRef.id, error: null };
+    } catch (error) {
+        console.error('Error creating appointment for patient:', error);
+        return { appointmentId: null, error };
+    }
+};
+
+/**
+ * Get all appointments (staff privilege)
+ * @param {string} filterDate - Optional date filter in YYYY-MM-DD format
+ * @returns {Promise<{appointments, error}>}
+ */
+export const getAllAppointments = async (filterDate = null) => {
+    try {
+        let q;
+        if (filterDate) {
+            q = query(
+                collection(db, 'appointments'),
+                where('date', '==', filterDate)
+            );
+        } else {
+            q = query(
+                collection(db, 'appointments')
+            );
+        }
+
+        const querySnapshot = await getDocs(q);
+        const appointments = [];
+
+        querySnapshot.forEach((doc) => {
+            appointments.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        // Sort by date and time (most recent first)
+        appointments.sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateB - dateA;
+        });
+
+        return { appointments, error: null };
+    } catch (error) {
+        console.error('Error getting all appointments:', error);
+        return { appointments: [], error };
+    }
+};
+
+/**
+ * Get dashboard statistics (staff privilege)
+ * @returns {Promise<{stats, error}>}
+ */
+export const getDashboardStats = async () => {
+    try {
+        const appointmentsRef = collection(db, 'appointments');
+        const usersRef = collection(db, 'users');
+
+        // Get all appointments
+        const appointmentsSnapshot = await getDocs(appointmentsRef);
+
+        // Get all patients
+        const usersSnapshot = await getDocs(usersRef);
+
+        // Calculate statistics
+        const today = new Date().toISOString().split('T')[0];
+        let totalAppointments = 0;
+        let scheduledAppointments = 0;
+        let completedAppointments = 0;
+        let cancelledAppointments = 0;
+        let todayAppointments = 0;
+
+        appointmentsSnapshot.forEach((doc) => {
+            const appointment = doc.data();
+            totalAppointments++;
+
+            if (appointment.status === 'programada') scheduledAppointments++;
+            if (appointment.status === 'terminada') completedAppointments++;
+            if (appointment.status === 'cancelada') cancelledAppointments++;
+            if (appointment.date === today) todayAppointments++;
+        });
+
+        const stats = {
+            totalPatients: usersSnapshot.size,
+            totalAppointments,
+            scheduledAppointments,
+            completedAppointments,
+            cancelledAppointments,
+            todayAppointments
+        };
+
+        return { stats, error: null };
+    } catch (error) {
+        console.error('Error getting dashboard stats:', error);
+        return { stats: null, error };
+    }
+};
+
+/**
+ * Get today's appointments (staff privilege)
+ * @returns {Promise<{appointments, error}>}
+ */
+export const getTodayAppointments = async () => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const q = query(
+            collection(db, 'appointments'),
+            where('date', '==', today),
+            where('status', '==', 'programada')
+        );
+
+        const querySnapshot = await getDocs(q);
+        const appointments = [];
+
+        querySnapshot.forEach((doc) => {
+            appointments.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        // Sort by time
+        appointments.sort((a, b) => {
+            const timeA = new Date(`1970-01-01 ${a.time}`);
+            const timeB = new Date(`1970-01-01 ${b.time}`);
+            return timeA - timeB;
+        });
+
+        return { appointments, error: null };
+    } catch (error) {
+        console.error('Error getting today appointments:', error);
+        return { appointments: [], error };
+    }
+};
+
+/**
+ * Get appointment counts by status (staff privilege)
+ * @returns {Promise<{counts, error}>}
+ */
+export const getAppointmentCountsByStatus = async () => {
+    try {
+        const appointmentsRef = collection(db, 'appointments');
+        const querySnapshot = await getDocs(appointmentsRef);
+
+        const counts = {
+            programada: 0,
+            terminada: 0,
+            cancelada: 0,
+            perdida: 0
+        };
+
+        querySnapshot.forEach((doc) => {
+            const appointment = doc.data();
+            if (counts.hasOwnProperty(appointment.status)) {
+                counts[appointment.status]++;
+            }
+        });
+
+        return { counts, error: null };
+    } catch (error) {
+        console.error('Error getting appointment counts:', error);
+        return { counts: null, error };
+    }
+};
+

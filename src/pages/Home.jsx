@@ -333,7 +333,7 @@ function Home({ userData }) {
                                                 </p>
                                             )}
                                             {appointment.notas && appointment.notas.trim() && (
-                                                <p className="appointment-reason">
+                                                <p className="appointment-reason appointment-notes">
                                                     <strong>Notas:</strong> {appointment.notas}
                                                 </p>
                                             )}
