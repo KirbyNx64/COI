@@ -25,29 +25,29 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.logo {
+.staff-sidebar .logo {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
 
-.logo svg {
+.staff-sidebar .logo svg {
     width: 40px;
     height: 40px;
 }
 
-.logo span {
+.staff-sidebar .logo span {
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.05em;
 }
 
-.user-info {
+.staff-sidebar .user-info {
     margin-top: 1rem;
 }
 
-.user-role {
+.staff-sidebar .user-role {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
@@ -196,14 +196,14 @@
         padding: 1rem;
     }
 
-    .mobile-title h2 {
+    .mobile-header .mobile-title h2 {
         font-size: 1rem;
         font-weight: 700;
         margin: 0;
         color: white;
     }
 
-    .mobile-user-info {
+    .mobile-header .mobile-user-info {
         font-size: 0.75rem;
         color: rgba(255, 255, 255, 0.9);
         margin: 0.25rem 0 0 0;
@@ -213,13 +213,13 @@
         gap: 0.5rem;
     }
 
-    .mobile-user-role {
+    .mobile-header .mobile-user-role {
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: rgba(255, 255, 255, 0.7);
     }
 
-    .mobile-user-name {
+    .mobile-header .mobile-user-name {
         color: rgba(255, 255, 255, 0.9);
         font-weight: 500;
     }

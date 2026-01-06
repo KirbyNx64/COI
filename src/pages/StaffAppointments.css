@@ -20,13 +20,13 @@
     gap: 0.75rem;
 }
 
-.header-icon {
+.appointments-header .header-icon {
     width: 40px;
     height: 40px;
     color: #2c5282;
 }
 
-.subtitle {
+.appointments-header .subtitle {
     font-size: 1rem;
     color: #64748b;
     margin: 0;
@@ -238,8 +238,8 @@
 }
 
 .status-badge.status-programada {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #fef3c7;
+    color: #92400e;
 }
 
 .status-badge.status-terminada {
@@ -410,12 +410,12 @@
 }
 
 .status-update-btn.status-programada {
-    color: #1e40af;
-    border-color: #1e40af;
+    color: #92400e;
+    border-color: #f59e0b;
 }
 
 .status-update-btn.status-programada.active {
-    background: #dbeafe;
+    background: #fef3c7;
 }
 
 .status-update-btn.status-terminada {

@@ -80,7 +80,7 @@
 }
 
 /* Section Titles */
-.section-title {
+.staff-dashboard .section-title {
     font-size: 1.5rem;
     color: #1e3a5f;
     margin: 0 0 1.5rem 0;
@@ -313,13 +313,13 @@
     animation: slideUp 0.8s ease-out;
 }
 
-.appointments-list {
+.today-appointments-section .appointments-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-.appointment-card {
+.today-appointments-section .appointment-card {
     background: white;
     border-radius: 16px;
     padding: 1.5rem;
@@ -331,12 +331,12 @@
     border-left: 4px solid #667eea;
 }
 
-.appointment-card:hover {
+.today-appointments-section .appointment-card:hover {
     transform: translateX(8px);
     box-shadow: 0 8px 30px rgba(102, 126, 234, 0.15);
 }
 
-.appointment-time {
+.today-appointments-section .appointment-time {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -348,38 +348,38 @@
     color: white;
 }
 
-.appointment-time svg {
+.today-appointments-section .appointment-time svg {
     width: 24px;
     height: 24px;
     color: white;
 }
 
-.appointment-time span {
+.today-appointments-section .appointment-time span {
     font-size: 1rem;
     font-weight: 700;
 }
 
-.appointment-details {
+.today-appointments-section .appointment-details {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.appointment-details h4 {
+.today-appointments-section .appointment-details h4 {
     font-size: 1.1rem;
     color: #1e3a5f;
     margin: 0;
     font-weight: 600;
 }
 
-.appointment-reason {
+.today-appointments-section .appointment-reason {
     font-size: 0.95rem;
     color: #64748b;
     margin: 0;
 }
 
-.appointment-clinic {
+.today-appointments-section .appointment-clinic {
     font-size: 0.9rem;
     color: #64748b;
     margin: 0;
@@ -388,12 +388,12 @@
     gap: 0.5rem;
 }
 
-.appointment-clinic svg {
+.today-appointments-section .appointment-clinic svg {
     width: 16px;
     height: 16px;
 }
 
-.appointment-status {
+.today-appointments-section .appointment-status {
     display: flex;
     align-items: center;
 }
@@ -406,7 +406,7 @@
 }
 
 .status-programada {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: #f59e0b;
     color: white;
 }
 
@@ -429,7 +429,7 @@
         height: 1.5rem;
     }
 
-    .section-title {
+    .staff-dashboard .section-title {
         font-size: 1.25rem;
     }
 
@@ -463,19 +463,19 @@
         padding: 1.5rem;
     }
 
-    .appointment-card {
+    .today-appointments-section .appointment-card {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
 
-    .appointment-time {
+    .today-appointments-section .appointment-time {
         flex-direction: row;
         width: 100%;
         justify-content: center;
     }
 
-    .appointment-status {
+    .today-appointments-section .appointment-status {
         width: 100%;
     }
 
@@ -498,7 +498,7 @@
         font-size: 1.1rem;
     }
 
-    .appointment-details h4 {
+    .today-appointments-section .appointment-details h4 {
         font-size: 1rem;
     }
 }
