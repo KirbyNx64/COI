@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth } from '../firebaseConfig';
 import { updateAppointmentDetails, getAvailableTimeSlots } from '../services/appointmentService';
+import { getPatientById } from '../services/staffService';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
 import { es } from 'date-fns/locale/es';
@@ -13,6 +14,8 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
     const [formData, setFormData] = useState({
         fecha: appointment.date || '',
         hora: appointment.time || '',
+        clinica: appointment.clinica || '',
+        motivo: appointment.reason || '',
         notas: appointment.notas || ''
     });
 
@@ -22,6 +25,7 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
     const [loadingHours, setLoadingHours] = useState(false);
     const [showWarningModal, setShowWarningModal] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
+    const [patientDetails, setPatientDetails] = useState(null);
 
     const horariosDisponibles = [
         '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM',
@@ -36,7 +40,7 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
 
                 const { availableSlots, error } = await getAvailableTimeSlots(
                     formData.fecha,
-                    appointment.clinica,
+                    formData.clinica,
                     appointment.time // Include current time to allow keeping it
                 );
 
@@ -59,7 +63,21 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
         };
 
         loadAvailableHours();
-    }, [formData.fecha, appointment.clinica, appointment.time]);
+    }, [formData.fecha, formData.clinica, appointment.time]);
+
+    // Load patient details on mount
+    useEffect(() => {
+        const loadPatientDetails = async () => {
+            if (appointment.userId) {
+                const { patient, error } = await getPatientById(appointment.userId);
+                if (!error && patient) {
+                    setPatientDetails(patient);
+                }
+            }
+        };
+
+        loadPatientDetails();
+    }, [appointment.userId]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -105,6 +123,14 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
             newErrors.hora = 'Por favor selecciona una hora';
         }
 
+        if (!formData.clinica) {
+            newErrors.clinica = 'Por favor selecciona una clínica';
+        }
+
+        if (!formData.motivo || formData.motivo.trim() === '') {
+            newErrors.motivo = 'Por favor ingresa el motivo de la cita';
+        }
+
         return newErrors;
     };
 
@@ -132,6 +158,8 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
             const updates = {};
             if (formData.fecha !== appointment.date) updates.date = formData.fecha;
             if (formData.hora !== appointment.time) updates.time = formData.hora;
+            if (formData.clinica !== appointment.clinica) updates.clinica = formData.clinica;
+            if (formData.motivo !== appointment.reason) updates.reason = formData.motivo;
             if (formData.notas !== appointment.notas) updates.notas = formData.notas;
 
             // If nothing changed, just close the modal
@@ -193,26 +221,74 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
                     <form onSubmit={handleSubmit} className="edit-appointment-form" noValidate>
                         {/* Read-only Information */}
                         <div className="form-section readonly-section">
-                            <h3>Información de la Cita</h3>
+                            <h3>Información del Paciente</h3>
                             <div className="readonly-grid">
                                 <div className="readonly-item">
                                     <label>Paciente:</label>
                                     <span>{appointment.patientName}</span>
                                 </div>
-                                <div className="readonly-item">
-                                    <label>Clínica:</label>
-                                    <span>{getClinicaLabel(appointment.clinica)}</span>
-                                </div>
-                                <div className="readonly-item full-width">
-                                    <label>Motivo:</label>
-                                    <span>{appointment.reason}</span>
-                                </div>
+                                {patientDetails && patientDetails.dui && (
+                                    <div className="readonly-item">
+                                        <label>DUI:</label>
+                                        <span>{patientDetails.dui}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Editable Fields */}
                         <div className="form-section">
                             <h3>Modificar Detalles</h3>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="clinica">
+                                        Clínica <span className="required">*</span>
+                                    </label>
+                                    <select
+                                        id="clinica"
+                                        name="clinica"
+                                        value={formData.clinica}
+                                        onChange={handleChange}
+                                        className={`${errors.clinica ? 'error' : ''} ${!formData.clinica ? 'placeholder' : ''}`}
+                                    >
+                                        <option value="">Selecciona una clínica</option>
+                                        <option value="santa-tecla">Santa Tecla</option>
+                                        <option value="soyapango">Soyapango</option>
+                                        <option value="san-martin">San Martín</option>
+                                        <option value="escalon">Escalón</option>
+                                        <option value="usulutan">Usulután</option>
+                                    </select>
+                                    {errors.clinica && (
+                                        <span className="error-message">{errors.clinica}</span>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="motivo">
+                                        Motivo de la cita <span className="required">*</span>
+                                    </label>
+                                    <select
+                                        id="motivo"
+                                        name="motivo"
+                                        value={formData.motivo}
+                                        onChange={handleChange}
+                                        className={`${errors.motivo ? 'error' : ''} ${!formData.motivo ? 'placeholder' : ''}`}
+                                    >
+                                        <option value="">Selecciona el motivo</option>
+                                        <option value="Control de rutina">Control de rutina</option>
+                                        <option value="Dolor de muelas">Dolor de muelas</option>
+                                        <option value="Limpieza dental">Limpieza dental</option>
+                                        <option value="Extracción">Extracción</option>
+                                        <option value="Ortodoncia">Ortodoncia</option>
+                                        <option value="Emergencia">Emergencia</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                    {errors.motivo && (
+                                        <span className="error-message">{errors.motivo}</span>
+                                    )}
+                                </div>
+                            </div>
 
                             <div className="form-row">
                                 <div className="form-group">

@@ -333,7 +333,9 @@
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -341,6 +343,8 @@
 
 .edit-button:hover {
     background: #1e3a5f;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 .edit-icon {
@@ -350,7 +354,7 @@
 
 .save-button {
     padding: 0.75rem 2rem;
-    background: #10b981;
+    background: #2c5282;
     color: white;
     border: none;
     border-radius: 8px;
@@ -361,7 +365,7 @@
 }
 
 .save-button:hover {
-    background: #059669;
+    background: #1e3a5f;
 }
 
 .save-button:disabled {
@@ -408,21 +412,25 @@
 /* Schedule Appointment Button */
 .schedule-appointment-button {
     padding: 0.75rem 2rem;
-    background: #10b981;
+    background: #2c5282;
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .schedule-appointment-button:hover {
-    background: #059669;
+    background: #1e3a5f;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 .calendar-icon {
@@ -538,12 +546,117 @@
 }
 
 .success-button:hover {
-    transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 .success-button:active {
-    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Technical Information Section */
+.technical-info {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.technical-info h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #475569;
+}
+
+.technical-icon {
+    width: 20px;
+    height: 20px;
+    color: #64748b;
+}
+
+.technical-value {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    color: #334155;
+    background: #ffffff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    word-break: break-all;
+}
+
+.uid-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.uid-container .technical-value {
+    flex: 1;
+    min-width: 200px;
+}
+
+.copy-uid-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #2c5282;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.copy-uid-button .copy-text {
+    color: #ffffff;
+}
+
+.copy-uid-button:hover {
+    background: #1e3a5f;
+    box-shadow: 0 4px 8px rgba(44, 82, 130, 0.3);
+}
+
+.copy-uid-button:active {
+    transform: none;
+}
+
+.copy-uid-button svg {
+    width: 16px;
+    height: 16px;
+    transition: all 0.3s ease;
+}
+
+.copy-uid-button.copied {
+    background: #10b981;
+    animation: copySuccess 0.3s ease;
+}
+
+.copy-uid-button.copied:hover {
+    background: #059669;
+}
+
+@keyframes copySuccess {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.copy-text {
+    font-size: 0.875rem;
 }
 
 /* Responsive Design */

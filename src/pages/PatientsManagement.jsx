@@ -18,6 +18,7 @@ const PatientsManagement = () => {
     const [showAppointmentModal, setShowAppointmentModal] = useState(false);
     const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [copiedUid, setCopiedUid] = useState(false);
 
     useEffect(() => {
         loadPatients();
@@ -163,6 +164,16 @@ const PatientsManagement = () => {
             });
         } catch {
             return dateString;
+        }
+    };
+
+    const handleCopyUid = async (uid) => {
+        try {
+            await navigator.clipboard.writeText(uid);
+            setCopiedUid(true);
+            setTimeout(() => setCopiedUid(false), 2000);
+        } catch (err) {
+            console.error('Error al copiar UID:', err);
         }
     };
 
@@ -479,6 +490,70 @@ const PatientsManagement = () => {
                                         <label>Fecha de Registro:</label>
                                         <span>{formatDate(selectedPatient.createdAt)}</span>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="detail-section technical-info">
+                                <h3>
+                                    <svg className="technical-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                                    </svg>
+                                    Información Técnica
+                                </h3>
+                                <div className="detail-grid">
+                                    <div className="detail-item full-width">
+                                        <label>UID del Usuario:</label>
+                                        <div className="uid-container">
+                                            <span className="technical-value">{selectedPatient.id || 'N/A'}</span>
+                                            <button
+                                                className={`copy-uid-button ${copiedUid ? 'copied' : ''}`}
+                                                onClick={() => handleCopyUid(selectedPatient.id)}
+                                                title="Copiar UID"
+                                            >
+                                                {copiedUid ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                    </svg>
+                                                )}
+                                                <span className="copy-text">{copiedUid ? '¡Copiado!' : 'Copiar'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Fecha de Creación:</label>
+                                        <span className="technical-value">
+                                            {selectedPatient.createdAt ? new Date(selectedPatient.createdAt).toLocaleString('es-SV', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                second: '2-digit'
+                                            }) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    {selectedPatient.updatedAt && (
+                                        <div className="detail-item">
+                                            <label>Última Actualización:</label>
+                                            <span className="technical-value">
+                                                {new Date(selectedPatient.updatedAt).toLocaleString('es-SV', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    second: '2-digit'
+                                                })}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

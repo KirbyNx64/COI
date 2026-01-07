@@ -545,3 +545,85 @@ export const getAppointmentCountsByStatus = async () => {
     }
 };
 
+/**
+ * Update appointment details (date, time, notes, clinic, reason) - staff privilege
+ * @param {string} appointmentId - Appointment document ID
+ * @param {object} updates - Fields to update (date, time, clinica, reason, notas)
+ * @param {string} staffId - Staff member's ID who is updating the appointment
+ * @returns {Promise<{error}>}
+ */
+export const updateAppointmentDetails = async (appointmentId, updates, staffId) => {
+    try {
+        // Get the current appointment
+        const { appointment, error: getError } = await getAppointmentById(appointmentId);
+        if (getError) {
+            return { error: getError };
+        }
+
+        // Validate date if it's being updated
+        if (updates.date) {
+            const selectedDate = new Date(updates.date + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Check if date is in the past
+            if (selectedDate < today) {
+                return { error: new Error('La fecha no puede ser en el pasado') };
+            }
+
+            // Check if date is today
+            if (selectedDate.getTime() === today.getTime()) {
+                return { error: new Error('No se pueden agendar citas para el día de hoy') };
+            }
+
+            // Check if date is Sunday
+            if (selectedDate.getDay() === 0) {
+                return { error: new Error('No se pueden agendar citas los domingos') };
+            }
+        }
+
+        // Check availability if date, time, or clinic is being updated
+        const dateChanged = updates.date && updates.date !== appointment.date;
+        const timeChanged = updates.time && updates.time !== appointment.time;
+        const clinicChanged = updates.clinica && updates.clinica !== appointment.clinica;
+
+        if (dateChanged || timeChanged || clinicChanged) {
+            const checkDate = updates.date || appointment.date;
+            const checkTime = updates.time || appointment.time;
+            const checkClinic = updates.clinica || appointment.clinica;
+
+            // Check if the new time slot is available
+            const { count, error: countError } = await getAppointmentCountByDateTime(
+                checkDate,
+                checkTime,
+                checkClinic
+            );
+
+            if (countError) {
+                return { error: countError };
+            }
+
+            // Allow if less than 2 appointments or if it's the same appointment
+            if (count >= 2) {
+                return { error: new Error('Este horario ya está completo. Por favor, selecciona otro horario.') };
+            }
+        }
+
+        // Prepare the update object
+        const updateData = {
+            ...updates,
+            lastUpdatedBy: staffId,
+            updatedAt: Timestamp.now()
+        };
+
+        // Update the appointment
+        const appointmentRef = doc(db, 'appointments', appointmentId);
+        await updateDoc(appointmentRef, updateData);
+
+        return { error: null };
+    } catch (error) {
+        console.error('Error updating appointment details:', error);
+        return { error };
+    }
+};
+

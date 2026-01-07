@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllAppointments, updateAppointmentStatus } from '../services/appointmentService';
 import { getPatientById } from '../services/staffService';
+import EditAppointmentModal from '../components/EditAppointmentModal';
 import './StaffAppointments.css';
 
 const StaffAppointments = () => {
@@ -15,6 +16,7 @@ const StaffAppointments = () => {
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [patientDetails, setPatientDetails] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
     useEffect(() => {
@@ -27,7 +29,7 @@ const StaffAppointments = () => {
 
     // Block body scroll when modal is open
     useEffect(() => {
-        if (showDetailModal) {
+        if (showDetailModal || showEditModal) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -37,7 +39,7 @@ const StaffAppointments = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [showDetailModal]);
+    }, [showDetailModal, showEditModal]);
 
     const loadAppointments = async () => {
         setIsLoading(true);
@@ -122,6 +124,22 @@ const StaffAppointments = () => {
         }
 
         setIsUpdatingStatus(false);
+    };
+
+    const handleEditAppointment = () => {
+        setShowDetailModal(false);
+        setShowEditModal(true);
+    };
+
+    const handleEditSuccess = async () => {
+        setShowEditModal(false);
+        setShowDetailModal(false);
+        await loadAppointments();
+    };
+
+    const handleEditCancel = () => {
+        setShowEditModal(false);
+        setShowDetailModal(true);
     };
 
     const getStatusLabel = (status) => {
@@ -396,12 +414,28 @@ const StaffAppointments = () => {
                         </div>
 
                         <div className="modal-actions">
+                            <button className="edit-button" onClick={handleEditAppointment}>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                Editar Cita
+                            </button>
                             <button className="close-button" onClick={() => setShowDetailModal(false)}>
                                 Cerrar
                             </button>
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Edit Appointment Modal */}
+            {showEditModal && selectedAppointment && (
+                <EditAppointmentModal
+                    appointment={selectedAppointment}
+                    onSuccess={handleEditSuccess}
+                    onCancel={handleEditCancel}
+                />
             )}
         </div>
     );
