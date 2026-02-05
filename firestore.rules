@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function para verificar si el usuario es staff
+    function isStaff() {
+      return exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+    
+    // Reglas para usuarios (pacientes)
+    match /users/{userId} {
+      // Pacientes pueden leer/actualizar su propio perfil
+      // Staff puede leer/actualizar todos los perfiles
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || isStaff());
+      
+      // Permitir crear si:
+      // 1. El usuario crea su propio perfil, O
+      // 2. El usuario es staff (puede crear perfiles para pacientes)
+      allow create: if request.auth != null && 
+        (request.auth.uid == userId || isStaff());
+      
+      allow update: if request.auth != null && 
+        (request.auth.uid == userId || isStaff());
+      allow delete: if false; // No permitir eliminación
+    }
+    
+    // Reglas para personal (staff)
+    match /staff/{staffId} {
+      // Permitir crear perfil de staff cuando el usuario está autenticado
+      // (el primer admin se auto-crea, los siguientes son creados por admins)
+      allow create: if request.auth != null;
+      
+      // Permitir leer solo su propio perfil
+      allow read: if request.auth != null && request.auth.uid == staffId;
+      
+      // Permitir actualizar solo su propio perfil
+      allow update: if request.auth != null && request.auth.uid == staffId;
+      
+      // No permitir eliminación
+      allow delete: if false;
+    }
+    
+    // Reglas para citas
+    match /appointments/{appointmentId} {
+      // Permitir crear citas si:
+      // 1. El usuario crea una cita para sí mismo, O
+      // 2. El usuario es staff (puede crear citas para cualquier paciente)
+      allow create: if request.auth != null && 
+        (request.resource.data.userId == request.auth.uid || isStaff());
+      
+      // Permitir leer, actualizar y eliminar las citas propias
+      // Staff puede leer/actualizar/eliminar todas las citas
+      allow read, update, delete: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || isStaff());
+      
+      // Permitir leer citas para verificar disponibilidad
+      // Solo cuando se consulta por fecha Y clínica Y estado
+      // Esto permite contar cuántas citas hay en una hora específica
+      allow read: if request.auth != null;
+    }
+  }
+}

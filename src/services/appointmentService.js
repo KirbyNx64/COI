@@ -30,6 +30,7 @@ export const createAppointment = async (userId, appointmentData) => {
             reason: appointmentData.reason || '',
             clinica: appointmentData.clinica || '',
             notas: appointmentData.notas || '',
+            notasMedico: appointmentData.notasMedico || '',
             status: appointmentData.status || 'programada',
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now()
@@ -371,6 +372,7 @@ export const createAppointmentForPatient = async (patientId, appointmentData, st
             reason: appointmentData.reason || '',
             clinica: appointmentData.clinica || '',
             notas: appointmentData.notas || '',
+            notasMedico: appointmentData.notasMedico || '',
             status: appointmentData.status || 'programada',
             createdBy: staffId, // Track who created this appointment
             createdByStaff: true, // Flag to indicate staff-created appointment

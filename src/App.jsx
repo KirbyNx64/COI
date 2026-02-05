@@ -18,6 +18,7 @@ import StaffLayout from './components/StaffLayout';
 import StaffDashboard from './pages/StaffDashboard';
 import PatientsManagement from './pages/PatientsManagement';
 import StaffAppointments from './pages/StaffAppointments';
+import StaffReports from './pages/StaffReports';
 import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
@@ -103,6 +104,20 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               isAuthenticated && isStaff ? (
                 <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
                   <StaffAppointments />
+                </StaffLayout>
+              ) : (
+                <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
+              )
+            }
+          />
+
+          {/* Staff Reports - only accessible for staff */}
+          <Route
+            path="/staff/reports"
+            element={
+              isAuthenticated && isStaff ? (
+                <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
+                  <StaffReports />
                 </StaffLayout>
               ) : (
                 <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />

@@ -713,3 +713,193 @@
         max-width: 95vw;
     }
 }
+
+/* Controls Right Section */
+.controls-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Add Patient Button */
+.add-patient-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #2c5282 0%, #1e3a5f 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
+}
+
+.add-patient-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(44, 82, 130, 0.4);
+}
+
+.add-patient-button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
+}
+
+.add-patient-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* New Patient Modal */
+.new-patient-modal {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.new-patient-content {
+    padding: 2rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 160px);
+}
+
+/* Info and Error Banners */
+.info-banner,
+.error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.info-banner {
+    background: #dbeafe;
+    border: 2px solid #3b82f6;
+    color: #1e40af;
+}
+
+.error-banner {
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    color: #991b1b;
+    font-weight: 600;
+}
+
+.info-banner svg,
+.error-banner svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* New Patient Form */
+.new-patient-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.form-section {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.form-section h3 {
+    font-size: 1.125rem;
+    color: #1e3a5f;
+    margin: 0 0 1.25rem 0;
+    font-weight: 600;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+.required {
+    color: #ef4444;
+    margin-left: 0.25rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #1e3a5f;
+    background: white;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #94a3b8;
+}
+
+/* Responsive for New Patient Form */
+@media (max-width: 768px) {
+    .controls-right {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .add-patient-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .new-patient-modal {
+        max-width: 95vw;
+    }
+
+    .new-patient-content {
+        padding: 1.5rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-section {
+        padding: 1rem;
+    }
+}

@@ -1,10 +1,11 @@
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signOut as firebaseSignOut
+    signOut as firebaseSignOut,
+    sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
+import { auth, db, secondaryAuth } from '../firebaseConfig';
 
 /**
  * Create a new staff profile with Firebase Auth and Firestore
@@ -191,5 +192,144 @@ export const getPatientById = async (patientId) => {
     } catch (error) {
         console.error('Get patient error:', error);
         return { patient: null, error };
+    }
+};
+
+/**
+ * Generate a secure temporary password
+ * @returns {string} Temporary password
+ */
+const generateTempPassword = () => {
+    const length = 12;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let password = '';
+
+    // Ensure at least one of each type
+    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // Uppercase
+    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // Lowercase
+    password += '0123456789'[Math.floor(Math.random() * 10)]; // Number
+    password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // Special char
+
+    // Fill the rest randomly
+    for (let i = password.length; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)];
+    }
+
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+};
+
+/**
+ * Create a new patient with temporary password and send password reset email
+ * @param {object} patientData - Patient information
+ * @param {string} createdBy - UID of staff member creating the patient
+ * @returns {Promise<{success, patient, error}>}
+ */
+export const createPatientWithTempPassword = async (patientData, createdBy) => {
+    try {
+        // Validate required fields
+        if (!patientData.email || !patientData.nombres || !patientData.apellidos) {
+            return {
+                success: false,
+                patient: null,
+                error: new Error('Email, nombres y apellidos son requeridos')
+            };
+        }
+
+        // Save current staff user before creating new patient
+        const currentStaffUser = auth.currentUser;
+        if (!currentStaffUser) {
+            return {
+                success: false,
+                patient: null,
+                error: new Error('No hay sesión de staff activa')
+            };
+        }
+
+        // Generate temporary password
+        const tempPassword = generateTempPassword();
+
+        // Create user with email and temporary password using SECONDARY auth
+        // This prevents logging out the current staff user
+        const userCredential = await createUserWithEmailAndPassword(
+            secondaryAuth,
+            patientData.email,
+            tempPassword
+        );
+        const newPatientUser = userCredential.user;
+
+        console.log('Patient user created in Auth:', newPatientUser.uid);
+
+        // Save patient profile to Firestore
+        try {
+            console.log('Attempting to save patient data to Firestore...');
+            await setDoc(doc(db, 'users', newPatientUser.uid), {
+                email: patientData.email,
+                nombres: patientData.nombres || '',
+                apellidos: patientData.apellidos || '',
+                fechaNacimiento: patientData.fechaNacimiento || null,
+                dui: patientData.dui || '',
+                genero: patientData.genero || '',
+                direccion: patientData.direccion || '',
+                telefono: patientData.telefono || '',
+                emergenciaNombre: patientData.emergenciaNombre || '',
+                emergenciaTelefono: patientData.emergenciaTelefono || '',
+                emergenciaParentesco: patientData.emergenciaParentesco || '',
+                tipoPaciente: patientData.tipoPaciente || 'primera-vez',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                createdBy: createdBy // Track who created this patient
+            });
+            console.log('Patient data saved successfully to Firestore');
+        } catch (firestoreError) {
+            console.error('Firestore save error:', firestoreError);
+            console.error('Error code:', firestoreError.code);
+            console.error('Error message:', firestoreError.message);
+
+            // Clean up: delete the auth user if Firestore save fails
+            try {
+                await newPatientUser.delete();
+                console.log('Cleaned up auth user after Firestore failure');
+            } catch (deleteError) {
+                console.error('Failed to clean up auth user:', deleteError);
+            }
+
+            throw new Error(`Error al guardar datos del paciente: ${firestoreError.message}`);
+        }
+
+        // Send password reset email so patient can set their own password
+        await sendPasswordResetEmail(secondaryAuth, patientData.email);
+
+        // Sign out from secondary auth (doesn't affect primary staff session)
+        await firebaseSignOut(secondaryAuth);
+
+        return {
+            success: true,
+            patient: {
+                id: newPatientUser.uid,
+                email: patientData.email,
+                nombres: patientData.nombres,
+                apellidos: patientData.apellidos
+            },
+            error: null
+        };
+    } catch (error) {
+        console.error('Create patient with temp password error:', error);
+
+        // Provide user-friendly error messages
+        let errorMessage = 'Error al crear el paciente';
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'Este correo electrónico ya está registrado';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'El correo electrónico no es válido';
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage = 'La contraseña es muy débil';
+        }
+
+        return {
+            success: false,
+            patient: null,
+            error: { ...error, message: errorMessage }
+        };
     }
 };

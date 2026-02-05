@@ -25,4 +25,9 @@ export const db = getFirestore(app);
 // Initialize Firebase Storage and get a reference to the service
 export const storage = getStorage(app);
 
+// Create a secondary app instance for creating users without affecting current session
+// This is used when staff creates patient accounts
+const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+export const secondaryAuth = getAuth(secondaryApp);
+
 export default app;

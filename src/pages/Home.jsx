@@ -198,6 +198,19 @@ function Home({ userData }) {
                 yPosition += notasLines.length * 6 + 10;
             }
 
+            // Notas del médico
+            if (appointment.notasMedico && appointment.notasMedico.trim()) {
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(0, 102, 204); // Blue color for doctor's notes
+                pdf.text('Notas del Médico:', margin, yPosition);
+                yPosition += 6;
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(0, 0, 0); // Back to black
+                const notasMedicoLines = pdf.splitTextToSize(appointment.notasMedico, contentWidth);
+                pdf.text(notasMedicoLines, margin, yPosition);
+                yPosition += notasMedicoLines.length * 6 + 10;
+            }
+
             // Línea separadora
             pdf.setDrawColor(200, 200, 200);
             pdf.line(margin, yPosition, pageWidth - margin, yPosition);
@@ -336,6 +349,20 @@ function Home({ userData }) {
                                                 <p className="appointment-reason appointment-notes">
                                                     <strong>Notas:</strong> {appointment.notas}
                                                 </p>
+                                            )}
+                                            {appointment.notasMedico && appointment.notasMedico.trim() && (
+                                                <div className="appointment-doctor-notes" style={{
+                                                    backgroundColor: '#f0f9ff',
+                                                    padding: '0.75rem',
+                                                    borderRadius: '6px',
+                                                    borderLeft: '3px solid #0066cc',
+                                                    marginTop: '0.5rem'
+                                                }}>
+                                                    <strong style={{ color: '#0066cc' }}>Notas del Médico:</strong>
+                                                    <p style={{ margin: '0.25rem 0 0 0', color: '#333' }}>
+                                                        {appointment.notasMedico}
+                                                    </p>
+                                                </div>
                                             )}
                                         </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllAppointments, updateAppointmentStatus } from '../services/appointmentService';
+import { getAllAppointments, updateAppointmentStatus, updateAppointment } from '../services/appointmentService';
 import { getPatientById } from '../services/staffService';
 import EditAppointmentModal from '../components/EditAppointmentModal';
 import './StaffAppointments.css';
@@ -18,6 +18,8 @@ const StaffAppointments = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [notasMedico, setNotasMedico] = useState('');
+    const [isSavingNotes, setIsSavingNotes] = useState(false);
 
     useEffect(() => {
         loadAppointments();
@@ -102,6 +104,7 @@ const StaffAppointments = () => {
     const handleViewDetails = async (appointment) => {
         setSelectedAppointment(appointment);
         setShowDetailModal(true);
+        setNotasMedico(appointment.notasMedico || '');
 
         // Load patient details
         const { patient, error } = await getPatientById(appointment.userId);
@@ -124,6 +127,24 @@ const StaffAppointments = () => {
         }
 
         setIsUpdatingStatus(false);
+    };
+
+    const handleSaveNotasMedico = async () => {
+        setIsSavingNotes(true);
+        const { error } = await updateAppointment(selectedAppointment.id, { notasMedico });
+
+        if (error) {
+            console.error('Error updating doctor notes:', error);
+            alert('Error al guardar las notas del médico');
+        } else {
+            // Update the selected appointment with new notes
+            setSelectedAppointment({ ...selectedAppointment, notasMedico });
+            // Reload appointments to reflect changes
+            await loadAppointments();
+            alert('Notas del médico guardadas exitosamente');
+        }
+
+        setIsSavingNotes(false);
     };
 
     const handleEditAppointment = () => {
@@ -377,6 +398,43 @@ const StaffAppointments = () => {
                                     </div>
                                 </div>
                             )}
+
+                            <div className="detail-section">
+                                <h3>Notas del Médico</h3>
+                                <textarea
+                                    value={notasMedico}
+                                    onChange={(e) => setNotasMedico(e.target.value)}
+                                    placeholder="Agregar observaciones médicas sobre la cita..."
+                                    rows="4"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '0.95rem',
+                                        fontFamily: 'inherit',
+                                        resize: 'vertical',
+                                        marginBottom: '0.75rem'
+                                    }}
+                                />
+                                <button
+                                    onClick={handleSaveNotasMedico}
+                                    disabled={isSavingNotes}
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        backgroundColor: '#0066cc',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: isSavingNotes ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.9rem',
+                                        fontWeight: '500',
+                                        opacity: isSavingNotes ? 0.6 : 1
+                                    }}
+                                >
+                                    {isSavingNotes ? 'Guardando...' : 'Guardar Notas'}
+                                </button>
+                            </div>
 
                             <div className="detail-section">
                                 <h3>Actualizar Estado</h3>

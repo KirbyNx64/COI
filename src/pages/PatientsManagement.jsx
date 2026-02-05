@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllPatients, updatePatientData } from '../services/staffService';
+import { getAllPatients, updatePatientData, createPatientWithTempPassword } from '../services/staffService';
 import StaffAppointmentForm from '../components/StaffAppointmentForm';
 import './PatientsManagement.css';
 
@@ -19,6 +19,25 @@ const PatientsManagement = () => {
     const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [copiedUid, setCopiedUid] = useState(false);
+
+    // New patient creation states
+    const [showNewPatientModal, setShowNewPatientModal] = useState(false);
+    const [newPatientData, setNewPatientData] = useState({
+        nombres: '',
+        apellidos: '',
+        email: '',
+        telefono: '',
+        dui: '',
+        fechaNacimiento: '',
+        genero: '',
+        direccion: '',
+        emergenciaNombre: '',
+        emergenciaTelefono: '',
+        emergenciaParentesco: '',
+        tipoPaciente: 'primera-vez'
+    });
+    const [isCreatingPatient, setIsCreatingPatient] = useState(false);
+    const [createError, setCreateError] = useState('');
 
     useEffect(() => {
         loadPatients();
@@ -47,7 +66,7 @@ const PatientsManagement = () => {
 
     // Block body scroll when any modal is open
     useEffect(() => {
-        if (showDetailModal || showAppointmentModal || showSuccessModal) {
+        if (showDetailModal || showAppointmentModal || showSuccessModal || showNewPatientModal) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -57,7 +76,7 @@ const PatientsManagement = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [showDetailModal, showAppointmentModal, showSuccessModal]);
+    }, [showDetailModal, showAppointmentModal, showSuccessModal, showNewPatientModal]);
 
     const loadPatients = async () => {
         setIsLoading(true);
@@ -177,6 +196,105 @@ const PatientsManagement = () => {
         }
     };
 
+    const handleNewPatientClick = () => {
+        setNewPatientData({
+            nombres: '',
+            apellidos: '',
+            email: '',
+            telefono: '',
+            dui: '',
+            fechaNacimiento: '',
+            genero: '',
+            direccion: '',
+            emergenciaNombre: '',
+            emergenciaTelefono: '',
+            emergenciaParentesco: '',
+            tipoPaciente: 'primera-vez'
+        });
+        setCreateError('');
+        setShowNewPatientModal(true);
+    };
+
+    const handleNewPatientFieldChange = (field, value) => {
+        setNewPatientData({
+            ...newPatientData,
+            [field]: value
+        });
+    };
+
+    const handleCreatePatient = async () => {
+        // Validate required fields
+        if (!newPatientData.nombres || !newPatientData.apellidos || !newPatientData.email) {
+            setCreateError('Nombres, apellidos y email son requeridos');
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newPatientData.email)) {
+            setCreateError('El formato del email no es válido');
+            return;
+        }
+
+        setIsCreatingPatient(true);
+        setCreateError('');
+
+        // Get current user ID (staff member creating the patient)
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        const createdBy = currentUser?.uid || 'unknown';
+
+        const { success, patient, error } = await createPatientWithTempPassword(
+            newPatientData,
+            createdBy
+        );
+
+        if (success) {
+            // Reload patients list
+            await loadPatients();
+            setShowNewPatientModal(false);
+            setShowSuccessModal(true);
+        } else {
+            setCreateError(error?.message || 'Error al crear el paciente');
+        }
+
+        setIsCreatingPatient(false);
+    };
+
+    const handleCancelNewPatient = () => {
+        setShowNewPatientModal(false);
+        setCreateError('');
+    };
+
+    const handleDuiChange = (value) => {
+        // Remove all non-numeric characters
+        let cleaned = value.replace(/\D/g, '');
+
+        // Limit to 9 digits
+        cleaned = cleaned.substring(0, 9);
+
+        // Add hyphen after 8th digit
+        if (cleaned.length > 8) {
+            cleaned = cleaned.substring(0, 8) + '-' + cleaned.substring(8);
+        }
+
+        handleNewPatientFieldChange('dui', cleaned);
+    };
+
+    const handleEditDuiChange = (value) => {
+        // Remove all non-numeric characters
+        let cleaned = value.replace(/\D/g, '');
+
+        // Limit to 9 digits
+        cleaned = cleaned.substring(0, 9);
+
+        // Add hyphen after 8th digit
+        if (cleaned.length > 8) {
+            cleaned = cleaned.substring(0, 8) + '-' + cleaned.substring(8);
+        }
+
+        handleFieldChange('dui', cleaned);
+    };
+
     return (
         <div className="patients-management">
             <div className="patients-header">
@@ -206,8 +324,19 @@ const PatientsManagement = () => {
                         <path d="m21 21-4.35-4.35"></path>
                     </svg>
                 </div>
-                <div className="patients-count">
-                    {filteredPatients.length} paciente{filteredPatients.length !== 1 ? 's' : ''}
+                <div className="controls-right">
+                    <div className="patients-count">
+                        {filteredPatients.length} paciente{filteredPatients.length !== 1 ? 's' : ''}
+                    </div>
+                    <button className="add-patient-button" onClick={handleNewPatientClick}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                        Agregar Paciente
+                    </button>
                 </div>
             </div>
 
@@ -359,9 +488,10 @@ const PatientsManagement = () => {
                                             <input
                                                 type="text"
                                                 value={editedPatient.dui || ''}
-                                                onChange={(e) => handleFieldChange('dui', e.target.value)}
+                                                onChange={(e) => handleEditDuiChange(e.target.value)}
                                                 className="edit-input"
                                                 placeholder="########-#"
+                                                maxLength="10"
                                             />
                                         ) : (
                                             <span>{selectedPatient.dui || 'N/A'}</span>
@@ -641,11 +771,189 @@ const PatientsManagement = () => {
                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                             </svg>
                         </div>
-                        <h3>Cita programada exitosamente</h3>
-                        <p>La cita ha sido creada y el paciente será notificado.</p>
+                        <h3>Paciente agregado exitosamente</h3>
+                        <p>Se ha enviado un correo electrónico al paciente para que establezca su contraseña.</p>
                         <button className="success-button" onClick={() => setShowSuccessModal(false)}>
                             Aceptar
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* New Patient Modal */}
+            {showNewPatientModal && (
+                <div className="modal-overlay" onClick={handleCancelNewPatient}>
+                    <div className="modal-content new-patient-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Agregar Nuevo Paciente</h2>
+                            <button className="modal-close" onClick={handleCancelNewPatient}>
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="new-patient-content">
+                            {createError && (
+                                <div className="error-banner">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    {createError}
+                                </div>
+                            )}
+
+                            <div className="info-banner">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                Se enviará un correo electrónico al paciente para que establezca su contraseña.
+                            </div>
+
+                            <form className="new-patient-form">
+                                <div className="form-section">
+                                    <h3>Información Personal</h3>
+                                    <div className="form-grid">
+                                        <div className="form-group">
+                                            <label>Nombres <span className="required">*</span></label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.nombres}
+                                                onChange={(e) => handleNewPatientFieldChange('nombres', e.target.value)}
+                                                placeholder="Nombres del paciente"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Apellidos <span className="required">*</span></label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.apellidos}
+                                                onChange={(e) => handleNewPatientFieldChange('apellidos', e.target.value)}
+                                                placeholder="Apellidos del paciente"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Fecha de Nacimiento</label>
+                                            <input
+                                                type="date"
+                                                value={newPatientData.fechaNacimiento}
+                                                onChange={(e) => handleNewPatientFieldChange('fechaNacimiento', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Género</label>
+                                            <select
+                                                value={newPatientData.genero}
+                                                onChange={(e) => handleNewPatientFieldChange('genero', e.target.value)}
+                                            >
+                                                <option value="">Seleccionar</option>
+                                                <option value="Masculino">Masculino</option>
+                                                <option value="Femenino">Femenino</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label>DUI</label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.dui}
+                                                onChange={(e) => handleDuiChange(e.target.value)}
+                                                placeholder="########-#"
+                                                maxLength="10"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="form-section">
+                                    <h3>Información de Contacto</h3>
+                                    <div className="form-grid">
+                                        <div className="form-group full-width">
+                                            <label>Email <span className="required">*</span></label>
+                                            <input
+                                                type="email"
+                                                value={newPatientData.email}
+                                                onChange={(e) => handleNewPatientFieldChange('email', e.target.value)}
+                                                placeholder="ejemplo@email.com"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Teléfono</label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.telefono}
+                                                onChange={(e) => handleNewPatientFieldChange('telefono', e.target.value)}
+                                                placeholder="12345678"
+                                            />
+                                        </div>
+                                        <div className="form-group full-width">
+                                            <label>Dirección</label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.direccion}
+                                                onChange={(e) => handleNewPatientFieldChange('direccion', e.target.value)}
+                                                placeholder="Dirección completa"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="form-section">
+                                    <h3>Contacto de Emergencia</h3>
+                                    <div className="form-grid">
+                                        <div className="form-group">
+                                            <label>Nombre</label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.emergenciaNombre}
+                                                onChange={(e) => handleNewPatientFieldChange('emergenciaNombre', e.target.value)}
+                                                placeholder="Nombre completo"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Teléfono</label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.emergenciaTelefono}
+                                                onChange={(e) => handleNewPatientFieldChange('emergenciaTelefono', e.target.value)}
+                                                placeholder="12345678"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Parentesco</label>
+                                            <input
+                                                type="text"
+                                                value={newPatientData.emergenciaParentesco}
+                                                onChange={(e) => handleNewPatientFieldChange('emergenciaParentesco', e.target.value)}
+                                                placeholder="Ej: Madre, Hermano"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                className="cancel-button"
+                                onClick={handleCancelNewPatient}
+                                disabled={isCreatingPatient}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                className="save-button"
+                                onClick={handleCreatePatient}
+                                disabled={isCreatingPatient}
+                            >
+                                {isCreatingPatient ? 'Creando...' : 'Crear Paciente'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

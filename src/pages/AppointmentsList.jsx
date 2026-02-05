@@ -166,6 +166,20 @@ function AppointmentsList() {
                                                     <p>{appointment.notas}</p>
                                                 </div>
                                             )}
+                                            {appointment.notasMedico && appointment.notasMedico.trim() && (
+                                                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                                                    <label>Notas del Médico</label>
+                                                    <p style={{
+                                                        backgroundColor: '#f0f9ff',
+                                                        padding: '0.75rem',
+                                                        borderRadius: '6px',
+                                                        borderLeft: '3px solid #0066cc',
+                                                        margin: '0'
+                                                    }}>
+                                                        {appointment.notasMedico}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {appointment.status === 'programada' && (

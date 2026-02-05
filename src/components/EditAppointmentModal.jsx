@@ -16,7 +16,8 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
         hora: appointment.time || '',
         clinica: appointment.clinica || '',
         motivo: appointment.reason || '',
-        notas: appointment.notas || ''
+        notas: appointment.notas || '',
+        notasMedico: appointment.notasMedico || ''
     });
 
     const [errors, setErrors] = useState({});
@@ -161,6 +162,7 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
             if (formData.clinica !== appointment.clinica) updates.clinica = formData.clinica;
             if (formData.motivo !== appointment.reason) updates.reason = formData.motivo;
             if (formData.notas !== appointment.notas) updates.notas = formData.notas;
+            if (formData.notasMedico !== appointment.notasMedico) updates.notasMedico = formData.notasMedico;
 
             // If nothing changed, just close the modal
             if (Object.keys(updates).length === 0) {
@@ -383,6 +385,20 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
                                     value={formData.notas}
                                     onChange={handleChange}
                                     placeholder="Información adicional que consideres importante..."
+                                    rows="4"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="notasMedico">
+                                    Notas del médico (opcional)
+                                </label>
+                                <textarea
+                                    id="notasMedico"
+                                    name="notasMedico"
+                                    value={formData.notasMedico}
+                                    onChange={handleChange}
+                                    placeholder="Observaciones médicas sobre la cita..."
                                     rows="4"
                                 />
                             </div>
