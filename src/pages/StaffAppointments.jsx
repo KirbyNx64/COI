@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllAppointments, updateAppointmentStatus, updateAppointment } from '../services/appointmentService';
 import { getPatientById } from '../services/staffService';
+import { createNotification } from '../services/notificationService';
 import EditAppointmentModal from '../components/EditAppointmentModal';
 import './StaffAppointments.css';
 
@@ -20,6 +21,16 @@ const StaffAppointments = () => {
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [notasMedico, setNotasMedico] = useState('');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+    // Toast State
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    const showToastMessage = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => {
+            setToast((prev) => ({ ...prev, show: false }));
+        }, 3000);
+    };
 
     useEffect(() => {
         loadAppointments();
@@ -119,11 +130,12 @@ const StaffAppointments = () => {
 
         if (error) {
             console.error('Error updating status:', error);
-            alert('Error al actualizar el estado de la cita');
+            showToastMessage('Error al actualizar el estado de la cita', 'error');
         } else {
             // Reload appointments to reflect changes
             await loadAppointments();
             setShowDetailModal(false);
+            showToastMessage('Estado actualizado correctamente', 'success');
         }
 
         setIsUpdatingStatus(false);
@@ -135,13 +147,28 @@ const StaffAppointments = () => {
 
         if (error) {
             console.error('Error updating doctor notes:', error);
-            alert('Error al guardar las notas del médico');
+            showToastMessage('Error al guardar las notas del médico', 'error');
         } else {
+            // Send notification to patient
+            if (selectedAppointment.userId) {
+                try {
+                    await createNotification(
+                        selectedAppointment.userId,
+                        'Nueva nota médica',
+                        `El Dr. ha agregado observaciones a tu cita del ${selectedAppointment.date}.`,
+                        'info',
+                        '/mis-citas' // Link to user's appointments list
+                    );
+                } catch (notifError) {
+                    console.error('Error sending notification:', notifError);
+                }
+            }
+
             // Update the selected appointment with new notes
             setSelectedAppointment({ ...selectedAppointment, notasMedico });
             // Reload appointments to reflect changes
             await loadAppointments();
-            alert('Notas del médico guardadas exitosamente');
+            showToastMessage('Notas del médico guardadas exitosamente', 'success');
         }
 
         setIsSavingNotes(false);
@@ -420,18 +447,14 @@ const StaffAppointments = () => {
                                 <button
                                     onClick={handleSaveNotasMedico}
                                     disabled={isSavingNotes}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        backgroundColor: '#0066cc',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        cursor: isSavingNotes ? 'not-allowed' : 'pointer',
-                                        fontSize: '0.9rem',
-                                        fontWeight: '500',
-                                        opacity: isSavingNotes ? 0.6 : 1
-                                    }}
+                                    className="edit-button"
+                                    style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
                                 >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                        <polyline points="7 3 7 8 15 8"></polyline>
+                                    </svg>
                                     {isSavingNotes ? 'Guardando...' : 'Guardar Notas'}
                                 </button>
                             </div>
@@ -494,6 +517,19 @@ const StaffAppointments = () => {
                     onSuccess={handleEditSuccess}
                     onCancel={handleEditCancel}
                 />
+            )}
+            {/* Toast Notification */}
+            {toast.show && (
+                <div className={`toast-notification ${toast.type}`}>
+                    <div className="toast-icon">
+                        {toast.type === 'success' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        )}
+                    </div>
+                    <span>{toast.message}</span>
+                </div>
             )}
         </div>
     );

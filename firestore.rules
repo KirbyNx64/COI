@@ -58,5 +58,20 @@ service cloud.firestore {
       // Esto permite contar cuántas citas hay en una hora específica
       allow read: if request.auth != null;
     }
+
+    // Reglas para notificaciones
+    match /notifications/{notificationId} {
+      // Staff puede crear notificaciones
+      allow create: if request.auth != null && isStaff();
+      
+      // Staff puede leer notificaciones (para verificar)
+      allow read: if request.auth != null && isStaff();
+
+      // Pacientes pueden leer sus propias notificaciones
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Pacientes pueden actualizar (marcar como leída) sus propias notificaciones
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
   }
 }
