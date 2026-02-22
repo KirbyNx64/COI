@@ -56,7 +56,8 @@
 
 .appointments-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: 1fr;
+    max-width: 100%;
     gap: 1.5rem;
 }
 
@@ -64,12 +65,11 @@
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    padding: 1.25rem;
-    transition: border-color 0.2s ease;
-    /* Removed box-shadow for flat design */
+    padding: 1.25rem 1.5rem;
+    transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 1rem;
     min-width: 0;
     overflow: hidden;
 }
@@ -181,14 +181,15 @@
 .appointment-info {
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 1.5rem;
+    flex-wrap: wrap;
+    gap: 2rem;
     margin-bottom: 0.5rem;
-    background: var(--color-bg-light);
-    padding: 0.75rem;
-    border-radius: 8px;
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 12px;
     justify-content: flex-start;
     align-items: center;
+    border: 1px solid #e2e8f0;
 }
 
 .info-item {
@@ -291,7 +292,11 @@
 /* Empty State */
 .empty-state {
     text-align: center;
-    padding: 4rem 2rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background: var(--card-bg);
     border: 2px dashed var(--border-color);
     border-radius: 16px;

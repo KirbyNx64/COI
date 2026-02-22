@@ -166,6 +166,39 @@ function AppointmentsList() {
                                                     <p>{appointment.notas}</p>
                                                 </div>
                                             )}
+                                            {appointment.recetaMedica && appointment.recetaMedica.trim() && (
+                                                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                                                    <label>Receta Médica</label>
+                                                    <pre style={{
+                                                        backgroundColor: '#f0fdf4',
+                                                        padding: '0.75rem',
+                                                        borderRadius: '6px',
+                                                        borderLeft: '3px solid #10b981',
+                                                        margin: '0',
+                                                        whiteSpace: 'pre-wrap',
+                                                        fontFamily: 'inherit',
+                                                        fontSize: '0.95rem',
+                                                        color: '#333'
+                                                    }}>
+                                                        {appointment.recetaMedica}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                            {appointment.diagnostico && appointment.diagnostico.trim() && (
+                                                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                                                    <label>Diagnóstico</label>
+                                                    <p style={{
+                                                        backgroundColor: '#fff7ed',
+                                                        padding: '0.75rem',
+                                                        borderRadius: '6px',
+                                                        borderLeft: '3px solid #f97316',
+                                                        margin: '0',
+                                                        color: '#431407'
+                                                    }}>
+                                                        {appointment.diagnostico}
+                                                    </p>
+                                                </div>
+                                            )}
                                             {appointment.notasMedico && appointment.notasMedico.trim() && (
                                                 <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
                                                     <label>Notas del Médico</label>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAllPatients, updatePatientData, createPatientWithTempPassword } from '../services/staffService';
+import { getAppointmentsByUser } from '../services/appointmentService';
 import StaffAppointmentForm from '../components/StaffAppointmentForm';
 import './PatientsManagement.css';
 
@@ -36,6 +37,9 @@ const PatientsManagement = () => {
         emergenciaParentesco: '',
         tipoPaciente: 'primera-vez'
     });
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [patientHistory, setPatientHistory] = useState([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isCreatingPatient, setIsCreatingPatient] = useState(false);
     const [createError, setCreateError] = useState('');
 
@@ -159,6 +163,18 @@ const PatientsManagement = () => {
     const handleScheduleAppointment = (patient) => {
         setSelectedPatientForAppointment(patient);
         setShowAppointmentModal(true);
+    };
+
+    const handleViewHistory = async (patient) => {
+        setIsLoadingHistory(true);
+        setShowHistoryModal(true);
+        const { appointments, error: historyError } = await getAppointmentsByUser(patient.id);
+        if (!historyError) {
+            setPatientHistory(appointments);
+        } else {
+            console.error('Error fetching history:', historyError);
+        }
+        setIsLoadingHistory(false);
     };
 
     const handleAppointmentSuccess = () => {
@@ -376,13 +392,13 @@ const PatientsManagement = () => {
                         <tbody>
                             {filteredPatients.map((patient) => (
                                 <tr key={patient.id}>
-                                    <td className="patient-name">
+                                    <td className="patient-name" data-label="Nombre Completo">
                                         {patient.nombres} {patient.apellidos}
                                     </td>
-                                    <td>{patient.email}</td>
-                                    <td>{patient.telefono || 'N/A'}</td>
-                                    <td>{patient.dui || 'N/A'}</td>
-                                    <td>
+                                    <td data-label="Email">{patient.email}</td>
+                                    <td data-label="Teléfono">{patient.telefono || 'N/A'}</td>
+                                    <td data-label="DUI">{patient.dui || 'N/A'}</td>
+                                    <td data-label="Acciones">
                                         <button
                                             onClick={() => handleViewDetails(patient)}
                                             className="view-button"
@@ -721,6 +737,12 @@ const PatientsManagement = () => {
                                         Programar Cita
                                     </button>
                                     <button
+                                        className="history-button"
+                                        onClick={() => handleViewHistory(selectedPatient)}
+                                    >
+                                        Historial Médico
+                                    </button>
+                                    <button
                                         className="edit-button"
                                         onClick={handleEditClick}
                                     >
@@ -940,19 +962,118 @@ const PatientsManagement = () => {
 
                         <div className="modal-actions">
                             <button
-                                className="cancel-button"
-                                onClick={handleCancelNewPatient}
-                                disabled={isCreatingPatient}
-                            >
-                                Cancelar
-                            </button>
-                            <button
                                 className="save-button"
                                 onClick={handleCreatePatient}
                                 disabled={isCreatingPatient}
                             >
                                 {isCreatingPatient ? 'Creando...' : 'Crear Paciente'}
                             </button>
+                            <button
+                                className="cancel-button"
+                                onClick={handleCancelNewPatient}
+                                disabled={isCreatingPatient}
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Medical History Modal */}
+            {showHistoryModal && selectedPatient && (
+                <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
+                    <div className="modal-content history-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '95%' }}>
+                        <div className="modal-header">
+                            <h2>Historial Médico: {selectedPatient.nombres} {selectedPatient.apellidos}</h2>
+                            <button className="modal-close" onClick={() => setShowHistoryModal(false)}>×</button>
+                        </div>
+                        <div className="history-content" style={{ padding: '1rem', maxHeight: '70vh', overflowY: 'auto' }}>
+                            {isLoadingHistory ? (
+                                <div className="loading-container">
+                                    <div className="loading-spinner" style={{ margin: '2rem auto' }}></div>
+                                    <p style={{ textAlign: 'center' }}>Cargando historial...</p>
+                                </div>
+                            ) : patientHistory.length === 0 ? (
+                                <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}>
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                    </svg>
+                                    <p style={{ color: '#64748b' }}>No hay registros médicos para este paciente.</p>
+                                </div>
+                            ) : (
+                                <div className="history-timeline" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    {patientHistory.map((entry) => (
+                                        <div key={entry.id} className="history-card" style={{
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '12px',
+                                            padding: '1.25rem',
+                                            backgroundColor: entry.status === 'terminada' ? '#f8fafc' : '#fff',
+                                            borderLeft: entry.status === 'terminada' ? '4px solid #10b981' : '4px solid #cbd5e1'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                <div style={{ fontWeight: 'bold', color: '#1e293b' }}>
+                                                    <span style={{ fontSize: '1.1rem' }}>{formatDate(entry.date)}</span>
+                                                    <span style={{ margin: '0 0.5rem', color: '#94a3b8' }}>•</span>
+                                                    <span>{entry.time}</span>
+                                                </div>
+                                                <span className={`status-badge status-${entry.status}`} style={{ fontSize: '0.8rem' }}>
+                                                    {entry.status.toUpperCase()}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Motivo:</label>
+                                                    <p style={{ margin: '0.25rem 0 0 0' }}>{entry.reason || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Clínica:</label>
+                                                    <p style={{ margin: '0.25rem 0 0 0' }}>{entry.clinica || 'N/A'}</p>
+                                                </div>
+                                            </div>
+
+                                            {(entry.diagnostico || entry.notasMedico || entry.recetaMedica) && (
+                                                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                    {entry.diagnostico && (
+                                                        <div style={{ backgroundColor: '#fff7ed', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid #f97316' }}>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', color: '#c2410c', fontWeight: 'bold' }}>DIAGNÓSTICO:</label>
+                                                            <p style={{ margin: '0.25rem 0 0 0', color: '#431407' }}>{entry.diagnostico}</p>
+                                                        </div>
+                                                    )}
+                                                    {entry.notasMedico && (
+                                                        <div style={{ backgroundColor: '#f0f9ff', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid #0ea5e9' }}>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', color: '#0369a1', fontWeight: 'bold' }}>OBSERVACIONES:</label>
+                                                            <p style={{ margin: '0.25rem 0 0 0', color: '#0c4a6e' }}>{entry.notasMedico}</p>
+                                                        </div>
+                                                    )}
+                                                    {entry.recetaMedica && (
+                                                        <div style={{ backgroundColor: '#f0fdf4', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid #22c55e' }}>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', color: '#15803d', fontWeight: 'bold' }}>RECETA MÉDICA:</label>
+                                                            <pre style={{ margin: '0.25rem 0 0 0', color: '#052e16', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{entry.recetaMedica}</pre>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-actions">
+                            <button className="close-button" onClick={() => setShowHistoryModal(false)} style={{
+                                backgroundColor: '#1e293b',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.6rem 1.5rem',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: '600'
+                            }}>Cerrar</button>
                         </div>
                     </div>
                 </div>

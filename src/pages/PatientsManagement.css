@@ -319,6 +319,27 @@
     background: #f8fafc;
 }
 
+/* Hide default calendar picker indicator for cleaner UI */
+.edit-input[type="date"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+    opacity: 0;
+    z-index: 1;
+    /* Allows clicking the input to trigger picker */
+}
+
+.edit-input[type="date"] {
+    position: relative;
+}
+
 .readonly-field {
     color: #64748b;
     font-style: italic;
@@ -436,6 +457,31 @@
 .calendar-icon {
     width: 16px;
     height: 16px;
+}
+
+/* History Button */
+.history-button {
+    padding: 0.75rem 2rem;
+    background: #2c5282;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.history-button:hover {
+    background: #1e3a5f;
+}
+
+.history-button svg {
+    width: 18px;
+    height: 18px;
 }
 
 /* Appointment Modal */
@@ -662,27 +708,91 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .patients-table-container {
-        overflow-x: auto;
+        overflow-x: visible;
+        background: transparent;
+        box-shadow: none;
     }
 
     .patients-table {
-        min-width: 800px;
-    }
-}
-
-@media (max-width: 768px) {
-    .patients-management {
-        padding: 1rem;
+        min-width: 0;
+        display: block;
     }
 
-    .patients-header h1 {
-        font-size: 1.5rem;
+    .patients-table thead {
+        display: none;
     }
 
+    .patients-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .patients-table tr {
+        display: block;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        padding: 1.25rem;
+    }
+
+    .patients-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f1f5f9;
+        text-align: right;
+        font-size: 0.95rem;
+    }
+
+    .patients-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-top: 0.5rem;
+    }
+
+    .patients-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #64748b;
+        text-align: left;
+        margin-right: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .view-button {
+        width: 100%;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Adjust controls for mobile */
     .patients-controls {
         flex-direction: column;
         align-items: stretch;
     }
+
+    .controls-right {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .patients-count {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .add-patient-button {
+        width: 100%;
+        justify-content: center;
+    }
+
 
     .search-box {
         max-width: none;
@@ -690,23 +800,33 @@
 
     .detail-grid {
         grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .detail-item {
+        text-align: left;
+        align-items: flex-start;
     }
 
     .patient-detail-content {
-        padding: 1.5rem;
+        padding: 1.25rem;
+        max-height: 75vh;
     }
 
     .modal-actions {
-        padding: 1rem 1.5rem;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+        padding: 1rem 1.25rem;
+        flex-direction: column;
+        gap: 0.75rem;
     }
 
     .schedule-appointment-button,
+    .history-button,
     .edit-button,
     .close-button {
-        flex: 1;
-        min-width: 120px;
+        width: 100%;
+        min-width: auto;
+        justify-content: center;
+        margin: 0;
     }
 
     .appointment-modal {

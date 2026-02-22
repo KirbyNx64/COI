@@ -20,6 +20,8 @@ const StaffAppointments = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [notasMedico, setNotasMedico] = useState('');
+    const [recetaMedica, setRecetaMedica] = useState('');
+    const [diagnostico, setDiagnostico] = useState('');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
 
     // Toast State
@@ -116,6 +118,8 @@ const StaffAppointments = () => {
         setSelectedAppointment(appointment);
         setShowDetailModal(true);
         setNotasMedico(appointment.notasMedico || '');
+        setRecetaMedica(appointment.recetaMedica || '');
+        setDiagnostico(appointment.diagnostico || '');
 
         // Load patient details
         const { patient, error } = await getPatientById(appointment.userId);
@@ -143,11 +147,15 @@ const StaffAppointments = () => {
 
     const handleSaveNotasMedico = async () => {
         setIsSavingNotes(true);
-        const { error } = await updateAppointment(selectedAppointment.id, { notasMedico });
+        const { error } = await updateAppointment(selectedAppointment.id, {
+            notasMedico,
+            recetaMedica,
+            diagnostico
+        });
 
         if (error) {
-            console.error('Error updating doctor notes:', error);
-            showToastMessage('Error al guardar las notas del médico', 'error');
+            console.error('Error updating medical info:', error);
+            showToastMessage('Error al guardar la información médica', 'error');
         } else {
             // Send notification to patient
             if (selectedAppointment.userId) {
@@ -165,10 +173,10 @@ const StaffAppointments = () => {
             }
 
             // Update the selected appointment with new notes
-            setSelectedAppointment({ ...selectedAppointment, notasMedico });
+            setSelectedAppointment({ ...selectedAppointment, notasMedico, recetaMedica, diagnostico });
             // Reload appointments to reflect changes
             await loadAppointments();
-            showToastMessage('Notas del médico guardadas exitosamente', 'success');
+            showToastMessage('Información médica guardada exitosamente', 'success');
         }
 
         setIsSavingNotes(false);
@@ -321,29 +329,33 @@ const StaffAppointments = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredAppointments.map((appointment) => (
+                            {filteredAppointments.map((app) => (
                                 <tr
-                                    key={appointment.id}
-                                    className={isToday(appointment.date) ? 'today-appointment' : ''}
+                                    key={app.id}
+                                    className={isToday(app.date) ? 'today-appointment' : ''}
                                 >
-                                    <td className="appointment-date">
-                                        {isToday(appointment.date) && (
-                                            <span className="today-badge">HOY</span>
-                                        )}
-                                        {appointment.date}
+                                    <td data-label="Fecha">
+                                        <div className="appointment-date">
+                                            {isToday(app.date) && <span className="today-badge">HOY</span>}
+                                            {formatDate(app.date)}
+                                        </div>
                                     </td>
-                                    <td>{appointment.time}</td>
-                                    <td className="patient-name">{appointment.patientName || 'N/A'}</td>
-                                    <td>{getClinicaLabel(appointment.clinica)}</td>
-                                    <td>{appointment.reason || 'N/A'}</td>
-                                    <td>
-                                        <span className={`status-badge status-${appointment.status}`}>
-                                            {getStatusLabel(appointment.status)}
+                                    <td data-label="Hora">
+                                        <div className="appointment-time">{app.time}</div>
+                                    </td>
+                                    <td className="patient-name" data-label="Paciente">
+                                        {app.patientName || 'N/A'}
+                                    </td>
+                                    <td data-label="Clínica">{getClinicaLabel(app.clinica)}</td>
+                                    <td data-label="Motivo">{app.reason || 'N/A'}</td>
+                                    <td data-label="Estado">
+                                        <span className={`status-badge status-${app.status}`}>
+                                            {getStatusLabel(app.status)}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Acciones">
                                         <button
-                                            onClick={() => handleViewDetails(appointment)}
+                                            onClick={() => handleViewDetails(app)}
                                             className="view-button"
                                         >
                                             Ver detalles
@@ -427,35 +439,75 @@ const StaffAppointments = () => {
                             )}
 
                             <div className="detail-section">
-                                <h3>Notas del Médico</h3>
-                                <textarea
-                                    value={notasMedico}
-                                    onChange={(e) => setNotasMedico(e.target.value)}
-                                    placeholder="Agregar observaciones médicas sobre la cita..."
-                                    rows="4"
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid #ddd',
-                                        fontSize: '0.95rem',
-                                        fontFamily: 'inherit',
-                                        resize: 'vertical',
-                                        marginBottom: '0.75rem'
-                                    }}
-                                />
+                                <h3>Sección Médica</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Receta Médica:</label>
+                                        <textarea
+                                            value={recetaMedica}
+                                            onChange={(e) => setRecetaMedica(e.target.value)}
+                                            placeholder="Ingresa la receta médica aquí..."
+                                            rows="3"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: '1px solid #ddd',
+                                                fontSize: '0.95rem',
+                                                fontFamily: 'inherit',
+                                                resize: 'vertical'
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Notas del Médico:</label>
+                                        <textarea
+                                            value={notasMedico}
+                                            onChange={(e) => setNotasMedico(e.target.value)}
+                                            placeholder="Agregar observaciones médicas..."
+                                            rows="3"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: '1px solid #ddd',
+                                                fontSize: '0.95rem',
+                                                fontFamily: 'inherit',
+                                                resize: 'vertical'
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Diagnóstico:</label>
+                                        <textarea
+                                            value={diagnostico}
+                                            onChange={(e) => setDiagnostico(e.target.value)}
+                                            placeholder="Ingresa el diagnóstico aquí..."
+                                            rows="3"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: '1px solid #ddd',
+                                                fontSize: '0.95rem',
+                                                fontFamily: 'inherit',
+                                                resize: 'vertical'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                                 <button
                                     onClick={handleSaveNotasMedico}
                                     disabled={isSavingNotes}
                                     className="edit-button"
-                                    style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
+                                    style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                                         <polyline points="17 21 17 13 7 13 7 21"></polyline>
                                         <polyline points="7 3 7 8 15 8"></polyline>
                                     </svg>
-                                    {isSavingNotes ? 'Guardando...' : 'Guardar Notas'}
+                                    {isSavingNotes ? 'Guardando...' : 'Guardar Información Médica'}
                                 </button>
                             </div>
 
