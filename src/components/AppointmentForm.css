@@ -1,302 +1,453 @@
-.appointment-form-container {
-    max-width: 700px;
-    margin: 0 auto;
+/* Appointment Form Modern Container */
+.apt-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    animation: fadeIn 0.4s ease;
 }
 
-.form-header {
+/* Header Styles */
+.apt-header {
     text-align: center;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 3rem;
 }
 
-.form-header h2 {
-    font-size: 1.75rem;
-    color: var(--color-text-primary);
-    margin-bottom: var(--spacing-xs);
+.apt-header h2 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.025em;
 }
 
-.form-header p {
-    font-size: 1rem;
-    color: var(--color-text-secondary);
+.apt-header-line {
+    width: 60px;
+    height: 4px;
+    background: var(--primary-color);
+    margin: 0.5rem auto 1.5rem;
+    border-radius: 2px;
 }
 
-.appointment-form {
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    padding: var(--spacing-lg);
-    /* Removed box-shadow for flat design */
+.apt-header p {
+    font-size: 1.1rem;
+    color: #64748b;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
 }
 
-.form-section {
-    margin-bottom: var(--spacing-lg);
+/* Form Layout */
+.apt-form {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 3rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
 }
 
-.form-section:last-of-type {
-    margin-bottom: var(--spacing-md);
+.apt-section {
+    margin-bottom: 3rem;
 }
 
-.form-section h3 {
-    font-size: 1.125rem;
-    color: var(--color-text-primary);
-    margin-bottom: var(--spacing-md);
-    padding-bottom: var(--spacing-xs);
-    border-bottom: 1px solid var(--color-border);
+.apt-section:last-of-type {
+    margin-bottom: 2rem;
 }
 
-.form-row {
+.apt-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.apt-section-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--primary-color);
+}
+
+.apt-section h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #334155;
+    margin: 0;
+}
+
+.apt-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.apt-row.apt-two-cols {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
-}
-
-.form-row:has(.form-group:nth-child(2)) {
     grid-template-columns: 1fr 1fr;
 }
 
-.form-group {
+.apt-group {
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
 }
 
-.form-group label {
-    color: var(--color-text-primary);
-    font-weight: 500;
-    margin-bottom: var(--spacing-xs);
-}
-
-.required {
-    color: var(--color-error);
-}
-
-/* Date input wrapper with calendar icon */
-.date-input-wrapper {
-    position: relative;
+.apt-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #475569;
     display: flex;
     align-items: center;
+    gap: 0.25rem;
 }
 
-.date-input-wrapper input {
-    flex: 1;
-    padding-right: 2.5rem;
-    /* Make room for the icon */
+.apt-required {
+    color: #ef4444;
 }
 
-.calendar-icon {
-    position: absolute;
-    right: 0.75rem;
-    width: 20px;
-    height: 20px;
-    color: var(--color-text-secondary);
-    pointer-events: none;
-    /* Allow clicks to pass through to the input */
+/* Input Wrappers & Fields */
+.apt-input-wrapper {
+    position: relative;
+    width: 100%;
 }
 
-/* Make date input fully clickable */
-input[type="date"],
-input[type="text"] {
+.apt-select,
+.apt-date-picker,
+.apt-textarea {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: #1e293b;
+    background-color: #f8fafc;
+    transition: all 0.2s ease;
     cursor: pointer;
 }
 
-select.placeholder {
-    color: var(--color-text-secondary);
+.apt-select:hover,
+.apt-date-picker:hover,
+.apt-textarea:hover {
+    border-color: #cbd5e1;
+    background-color: #fff;
 }
 
-input.error,
-select.error,
-textarea.error {
-    border-color: var(--color-error);
+.apt-select:focus,
+.apt-date-picker:focus,
+.apt-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1);
 }
 
-.field-hint {
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-    margin-top: var(--spacing-xs);
-    display: block;
-    font-style: italic;
+.apt-select option {
+    color: #1e293b;
+    background-color: #ffffff;
 }
 
-.error-message {
-    color: var(--color-error);
-    font-size: 0.875rem;
-    margin-top: var(--spacing-xs);
+.apt-placeholder {
+    color: #64748b;
 }
 
-.success-banner {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    border-radius: var(--radius);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
+.apt-textarea {
+    resize: vertical;
+    min-height: 120px;
+    cursor: text;
+}
+
+/* Specialized Select Styling */
+.apt-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 20px;
+    padding-right: 3rem;
+}
+
+/* DatePicker Integration */
+.react-datepicker-wrapper {
+    width: 100%;
+}
+
+.apt-date-picker {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 20px;
+}
+
+/* Hints and Errors */
+.apt-hint {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-top: -0.25rem;
+}
+
+.apt-error-msg {
+    font-size: 0.85rem;
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.apt-error {
+    border-color: #fecaca !important;
+    background-color: #fef2f2 !important;
+}
+
+.apt-general-error {
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+    padding: 1.25rem;
+    border-radius: 12px;
+    color: #991b1b;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-weight: 500;
+}
+
+.apt-info-msg {
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    background-color: #f0f9ff;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #e0f2fe;
+}
+
+/* Submit Button */
+.apt-submit-btn {
+    width: 100%;
+    padding: 1.25rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+}
+
+.apt-submit-btn:hover:not(:disabled) {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 102, 204, 0.3);
+}
+
+.apt-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.apt-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.apt-btn-content,
+.apt-spinner-box {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    color: #155724;
+    justify-content: center;
+    gap: 0.75rem;
 }
 
-.success-banner svg {
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
+.apt-btn-content svg {
+    width: 22px;
+    height: 22px;
+    transition: transform 0.2s ease;
 }
 
-.success-banner strong {
-    display: block;
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
+.apt-submit-btn:hover svg {
+    transform: translateX(4px);
 }
 
-.success-banner p {
-    margin: 0;
-    color: #155724;
-    font-size: 0.875rem;
-}
-
-.btn-submit {
-    width: 100%;
-    padding: 0.875rem 1.5rem;
-    font-size: 1rem;
-    margin-top: var(--spacing-sm);
-}
-
-.btn-submit svg {
-    width: 18px;
-    height: 18px;
-}
-
-.spinner {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+.apt-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;
-    animation: spin 0.6s linear infinite;
+    animation: pro-spin 0.8s linear infinite;
 }
 
-@keyframes spin {
+@keyframes pro-spin {
     to {
         transform: rotate(360deg);
     }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .appointment-form {
-        padding: var(--spacing-md);
-    }
-
-    .form-row:has(.form-group:nth-child(2)) {
-        grid-template-columns: 1fr;
-    }
+/* Modal Overlay & Card */
+.apt-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 1.5rem;
 }
 
-/* React DatePicker Custom Styles */
-.date-picker-input {
+.apt-modal-card {
+    background: white;
+    border-radius: 24px;
+    padding: 2.5rem;
+    max-width: 450px;
     width: 100%;
-    padding: 0.875rem 1rem;
-    padding-right: 2.5rem;
-    /* Make room for calendar icon */
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius);
-    font-size: 1rem;
-    font-family: inherit;
-    background-color: var(--color-bg);
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.apt-modal-icon-box {
+    width: 64px;
+    height: 64px;
+    background: #fffbeb;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+}
+
+.apt-modal-icon-box svg {
+    width: 32px;
+    height: 32px;
+}
+
+.apt-modal-card h3 {
+    font-size: 1.5rem;
+    color: #1e293b;
+    margin-bottom: 1rem;
+}
+
+.apt-modal-card p {
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.apt-modal-btn {
+    width: 100%;
+    padding: 1rem;
+    background-color: #f1f5f9;
+    color: #1e293b;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 20px;
 }
 
-.date-picker-input:hover {
-    border-color: var(--color-primary);
+.apt-modal-btn:hover {
+    background-color: #e2e8f0;
 }
 
-.date-picker-input:focus {
-    outline: none;
-    border-color: var(--color-primary);
+/* Custom Calendar Adjustments */
+.apt-custom-calendar {
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    font-family: inherit !important;
 }
 
-.date-picker-input.error {
-    border-color: var(--color-error);
+.apt-custom-calendar .react-datepicker__header {
+    background-color: white !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding-top: 1.5rem !important;
 }
 
-/* Custom calendar styling */
-.react-datepicker {
-    font-family: inherit;
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.apt-custom-calendar .react-datepicker__current-month {
+    color: #1e293b !important;
+    font-weight: 800 !important;
+    font-size: 1.1rem !important;
 }
 
-.react-datepicker__header {
-    background-color: var(--color-primary);
-    border-bottom: none;
-    border-radius: var(--radius) var(--radius) 0 0;
-    padding-top: 0.875rem;
-    padding-bottom: 0.5rem;
+.apt-custom-calendar .react-datepicker__day-name {
+    color: #94a3b8 !important;
+    font-weight: 700 !important;
 }
 
-.react-datepicker__current-month {
-    color: white;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+.apt-custom-calendar .react-datepicker__navigation {
+    top: 1.2rem !important;
 }
 
-.react-datepicker__day-names {
-    display: flex;
-    justify-content: space-around;
-    background-color: var(--color-primary);
-    margin: 0;
-    padding: 0.5rem 0;
+.apt-custom-calendar .react-datepicker__navigation-icon::before {
+    border-color: #64748b !important;
+    border-width: 2px 2px 0 0 !important;
+    height: 8px !important;
+    width: 8px !important;
 }
 
-.react-datepicker__day-name {
-    color: white;
-    font-weight: 600;
-    width: 2rem;
-    line-height: 2rem;
-    margin: 0;
+.apt-custom-calendar .react-datepicker__navigation:hover *::before {
+    border-color: var(--primary-color) !important;
 }
 
-.react-datepicker__day {
-    color: var(--color-text-primary);
-    border-radius: 50%;
-    transition: all 0.2s;
+.apt-custom-calendar .react-datepicker__day--selected {
+    background-color: var(--primary-color) !important;
+    border-radius: 10px !important;
 }
 
-.react-datepicker__day:hover:not(.react-datepicker__day--disabled) {
-    background-color: var(--color-primary) !important;
-    color: white !important;
+.apt-custom-calendar .react-datepicker__day:hover {
+    background-color: #f1f5f9 !important;
+    border-radius: 10px !important;
+    color: var(--primary-color) !important;
 }
 
-.react-datepicker__day--selected {
-    background-color: var(--color-primary);
-    color: white;
-    font-weight: 600;
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.react-datepicker__day--disabled {
-    color: var(--color-text-secondary);
-    opacity: 0.4;
-    cursor: not-allowed;
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
-.react-datepicker__day--disabled:hover {
-    background-color: transparent;
-    color: var(--color-text-secondary);
-}
+/* Responsive Fixes */
+@media (max-width: 640px) {
+    .apt-form {
+        padding: 1.5rem;
+        border-radius: 0;
+    }
 
-.react-datepicker__navigation {
-    top: 0.875rem;
-}
+    .apt-row.apt-two-cols {
+        grid-template-columns: 1fr;
+    }
 
-.react-datepicker__navigation-icon::before {
-    border-color: white;
-}
+    .apt-header h2 {
+        font-size: 1.75rem;
+    }
 
-.react-datepicker__navigation:hover *::before {
-    border-color: rgba(255, 255, 255, 0.8);
+    .apt-container {
+        padding: 0;
+        margin: 0 auto;
+    }
 }

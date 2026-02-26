@@ -2,78 +2,82 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    flex: 1;
-    /* Solid color instead of gradient */
-    background: #f5f7fa;
-    padding: 20px;
+    min-height: 100vh;
+    /* Soft gradient background to reduce harshness of pure white */
+    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+    padding: 2rem;
 }
 
 .login-card {
-    background: white;
-    padding: 3rem;
-    border-radius: 24px;
-    border: 2px solid #007bff;
+    background: #ffffff;
+    padding: 3.5rem;
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
     width: 100%;
-    max-width: 900px;
+    max-width: 500px;
     text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
 }
 
-@media (max-width: 768px) {
-    .login-card {
-        max-width: 420px;
-    }
+.login-card.wide {
+    max-width: 900px;
+}
+
+.login-header {
+    margin-bottom: 2.5rem;
 }
 
 .login-logo {
-    height: 80px;
+    height: 90px;
     width: auto;
-    margin-bottom: 1.5rem;
 }
 
 .auth-tabs {
     display: flex;
     justify-content: center;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid #e2e8f0;
+    gap: 3rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 2px solid #f1f5f9;
 }
 
 .auth-tab {
     background: none;
     border: none;
     padding: 1rem 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #718096;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #94a3b8;
     cursor: pointer;
     position: relative;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 .auth-tab:hover {
-    color: #4a5568;
+    color: #0066cc;
 }
 
 .auth-tab.active {
-    color: #007bff;
+    color: #0066cc;
 }
 
 .auth-tab.active::after {
     content: '';
     position: absolute;
-    bottom: -1px;
+    bottom: -2px;
     left: 0;
     width: 100%;
-    height: 2px;
-    background-color: #007bff;
+    height: 3px;
+    background: #0066cc;
+    border-radius: 3px;
 }
 
 .login-form {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.75rem;
 }
 
 .form-group {
@@ -81,225 +85,190 @@
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #4a5568;
-    font-weight: 600;
-    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+    color: #475569;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-left: 0.25rem;
 }
 
+/* Enhanced Visual Contrast for Inputs */
 .form-group input,
 .form-group select {
     width: 100%;
-    padding: 0.875rem 1rem;
+    padding: 1rem 1.25rem;
     border: 2px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 16px;
     font-size: 1rem;
-    transition: all 0.2s;
-    background-color: #f8fafc;
+    font-family: inherit;
+    color: #1e293b;
+    background-color: #ffffff;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.form-group select {
-    padding-right: 3rem;
-    /* More space for the dropdown arrow */
-    appearance: none;
-    /* Remove native arrow */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    /* Position arrow 1rem from right edge */
-    background-size: 12px;
+.form-group input::placeholder {
+    color: #94a3b8;
+}
+
+.form-group input:hover,
+.form-group select:hover {
+    border-color: #cbd5e1;
 }
 
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
-    border-color: #007bff;
-    background-color: white;
-    /* Removed box-shadow */
+    border-color: #0066cc;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1);
 }
 
-/* Password Input Wrapper */
-.password-input-wrapper {
-    position: relative;
-    width: 100%;
-}
-
-.password-input-wrapper input {
-    padding-right: 3rem;
-}
-
-.password-toggle {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #718096;
-    transition: color 0.2s;
-}
-
-.password-toggle:hover {
-    color: #007bff;
-}
-
-.password-toggle svg {
-    width: 20px;
-    height: 20px;
-}
-
-/* Date input wrapper with calendar icon */
-.date-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.date-input-wrapper input {
-    flex: 1;
-    padding-right: 2.5rem;
-    /* Make room for the icon */
-}
-
-.calendar-icon {
-    position: absolute;
-    right: 0.75rem;
-    width: 20px;
-    height: 20px;
-    color: #718096;
-    pointer-events: none;
-    /* Allow clicks to pass through to the input */
-}
-
-
-
-/* Input with icon wrapper (for phone, DUI, address fields) */
+.password-input-wrapper,
 .input-with-icon {
     position: relative;
     width: 100%;
 }
 
+.password-input-wrapper input,
 .input-with-icon input {
-    padding-right: 2.5rem;
-    /* Make room for the icon */
+    padding-right: 3.5rem;
 }
 
+.password-toggle,
 .input-icon {
     position: absolute;
-    right: 0.75rem;
+    right: 1.125rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    color: #718096;
-    pointer-events: none;
-    /* Allow clicks to pass through to the input */
+    color: #94a3b8;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    cursor: pointer;
 }
 
-.form-group select.placeholder-selected {
-    color: #718096;
+.password-toggle:hover {
+    color: #0066cc;
 }
 
-.form-group select option {
-    color: #1a202c;
+/* Error States Prefix lgn- */
+.lgn-input-error {
+    border-color: #fca5a5 !important;
+    background-color: #fffafb !important;
 }
 
-.form-group select option[value=""] {
-    color: #718096;
-}
-
-.input-error {
-    border-color: #e53e3e !important;
-}
-
-.field-hint {
-    color: #718096;
-    font-size: 0.8rem;
+.lgn-error-msg,
+.lgn-field-error {
+    color: #e11d48;
+    font-size: 0.825rem;
+    font-weight: 600;
+    padding: 0.6rem 0.85rem;
+    background-color: #fff1f2;
+    border-radius: 12px;
     margin-top: 0.5rem;
-    display: block;
-    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid #ffe4e6;
+    box-shadow: 0 2px 4px rgba(225, 29, 72, 0.04);
+    animation: lgn-error-shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }
 
-.field-error-message {
-    color: #e53e3e;
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-    display: block;
-    text-align: left;
-    background-color: #fff5f5;
-    padding: 0.5rem;
-    border-radius: 6px;
+@keyframes lgn-error-shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(1.5px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-2px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(2px, 0, 0);
+    }
 }
 
-.error-message {
-    color: #e53e3e;
-    font-size: 0.875rem;
-    margin-top: -0.5rem;
-    text-align: left;
-    background-color: #fff5f5;
-    padding: 0.5rem;
-    border-radius: 6px;
+.lgn-field-error svg,
+.lgn-error-msg svg {
+    flex-shrink: 0;
+    color: #f43f5e;
+}
+
+/* Auth Buttons */
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
 }
 
 .login-button {
-    width: 100%;
-    background-color: #007bff;
+    flex: 1;
+    background: #0066cc;
     color: white;
-    padding: 1rem;
+    padding: 1.125rem;
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
     font-size: 1.1rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.2s;
-    margin-top: 1rem;
-    /* Removed box-shadow */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.login-button:hover {
-    background-color: #0056b3;
-    /* Removed transform and box-shadow */
+.login-button:hover:not(:disabled) {
+    background: #0052a3;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 102, 204, 0.3);
 }
 
-.login-button:active {
-    transform: none;
+.login-button.secondary {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.login-button.secondary:hover {
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
 .forgot-password {
-    margin-top: 1.5rem;
+    margin-top: 2rem;
 }
 
 .forgot-password a {
-    color: #718096;
-    font-size: 1.0rem;
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 600;
     text-decoration: none;
     transition: color 0.2s;
 }
 
 .forgot-password a:hover {
-    color: #007bff;
-    text-decoration: underline;
+    color: #0066cc;
 }
 
-/* Multi-step Registration Styles */
-.login-card.wide {
-    max-width: 900px;
-}
-
-@media (max-width: 768px) {
-    .login-card.wide {
-        max-width: 420px;
-    }
-}
-
+/* Registration Stepper */
 .registration-step-2 {
     display: flex;
     flex-direction: column;
@@ -307,266 +276,289 @@
 }
 
 .registration-step-2 h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #334155;
     text-align: left;
-    color: #2d3748;
-    font-size: 1.1rem;
-    margin-bottom: 0;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .form-row {
-    display: flex;
-    gap: 1rem;
-}
-
-.form-row .form-group {
-    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
 }
 
 .divider {
     height: 1px;
-    background-color: #e2e8f0;
+    background: #f1f5f9;
     margin: 1.5rem 0;
 }
 
 .radio-group label {
-    margin-bottom: 0.5rem;
-    display: block;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 1rem;
 }
 
 .radio-options {
     display: flex;
-    gap: 3rem;
-    margin-top: 0.5rem;
+    gap: 2.5rem;
+    margin-top: 0.75rem;
 }
 
 .radio-label {
     display: flex;
     align-items: center;
-    font-weight: normal !important;
+    gap: 0.75rem;
+    font-weight: 600 !important;
+    color: #334155;
     cursor: pointer;
 }
 
 .radio-label input[type="radio"] {
-    width: 1.2rem;
-    height: 1.2rem;
-    margin: 0;
-    margin-right: 1rem;
-    accent-color: #007bff;
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: #0066cc;
 }
 
-.button-group {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-    justify-content: space-between;
-}
-
-.login-button.secondary {
-    background-color: #e2e8f0;
-    color: #4a5568;
-    box-shadow: none;
-}
-
-.login-button.secondary:hover {
-    background-color: #cbd5e0;
-    transform: translateY(-1px);
-}
-
-@media (max-width: 600px) {
-    .form-row {
-        flex-direction: column;
-        gap: 1rem;
-    }
-}
-
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 16px;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #2d3748;
-}
-
-.modal-content p {
-    color: #718096;
-    margin-bottom: 1.5rem;
-}
-
-.success-message {
-    color: #38a169;
-    font-size: 0.875rem;
-    text-align: left;
-    background-color: #f0fff4;
-    padding: 0.5rem;
-    border-radius: 6px;
-    margin-top: 1rem;
-}
-
-.login-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Spinner for loading state */
-.spinner {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+/* Spinner */
+.lgn-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    margin-right: 0.5rem;
-    vertical-align: middle;
+    animation: lgn-spin 0.8s linear infinite;
+    display: inline-block;
 }
 
-@keyframes spin {
+@keyframes lgn-spin {
     to {
         transform: rotate(360deg);
     }
 }
 
-/* React DatePicker Custom Styles */
-.date-picker-input {
+/* Specific Reset Password Modal Styles */
+.lgn-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.lgn-modal-content {
+    background: white;
+    padding: 0;
+    border-radius: 24px;
+    max-width: 480px;
     width: 100%;
-    padding: 0.875rem 1rem;
-    padding-right: 2.5rem;
-    /* Make room for calendar icon */
-    border: 2px solid #e2e8f0;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+}
+
+.lgn-modal-header {
+    padding: 1.5rem 2rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lgn-modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.lgn-modal-close {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    transition: all 0.2s;
+}
+
+.lgn-modal-close:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: rotate(90deg);
+}
+
+.lgn-modal-body {
+    padding: 2rem;
+}
+
+.lgn-modal-message {
+    color: #475569;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.lgn-reset-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.lgn-modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.lgn-btn-primary {
+    flex: 1;
+    background: #0066cc;
+    color: white;
+    padding: 0.875rem;
     border-radius: 12px;
-    font-size: 1rem;
-    font-family: inherit;
-    background-color: #f8fafc;
+    font-weight: 700;
+    border: none;
     cursor: pointer;
     transition: all 0.2s;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 20px;
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
 }
 
-.date-picker-input:hover {
-    border-color: #007bff;
+.lgn-btn-primary:hover:not(:disabled) {
+    background: #0052a3;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 102, 204, 0.3);
 }
 
-.date-picker-input:focus {
-    outline: none;
-    border-color: #007bff;
-    background-color: white;
-}
-
-.date-picker-input.input-error {
-    border-color: #e53e3e !important;
-}
-
-/* Custom calendar styling */
-.react-datepicker {
-    font-family: inherit;
-    border: 2px solid #e2e8f0;
+.lgn-btn-light {
+    flex: 1;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.875rem;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.react-datepicker__header {
-    background-color: #007bff;
-    border-bottom: none;
-    border-radius: 12px 12px 0 0;
-    padding-top: 0.875rem;
-    padding-bottom: 0.5rem;
-}
-
-.react-datepicker__current-month {
-    color: white;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.react-datepicker__day-names {
-    display: flex;
-    justify-content: space-around;
-    background-color: #007bff;
-    margin: 0;
-    padding: 0.5rem 0;
-}
-
-.react-datepicker__day-name {
-    color: white;
-    font-weight: 600;
-    width: 2rem;
-    line-height: 2rem;
-    margin: 0;
-}
-
-.react-datepicker__day {
-    color: #1a202c;
-    border-radius: 50%;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
     transition: all 0.2s;
 }
 
-.react-datepicker__day:hover:not(.react-datepicker__day--disabled) {
-    background-color: #007bff !important;
-    color: white !important;
+.lgn-btn-light:hover {
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
-.react-datepicker__day--selected {
-    background-color: #007bff;
-    color: white;
+.lgn-success-msg-info {
+    color: #059669;
+    font-size: 0.85rem;
     font-weight: 600;
+    padding: 0.75rem 1rem;
+    background-color: #ecfdf5;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #d1fae5;
 }
 
-.react-datepicker__day--disabled {
-    color: #718096;
-    opacity: 0.4;
-    cursor: not-allowed;
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-.react-datepicker__day--disabled:hover {
-    background-color: transparent;
-    color: #718096;
+/* React DatePicker */
+.date-picker-wrapper-lgn {
+    position: relative;
+    width: 100%;
 }
 
-.react-datepicker__navigation {
-    top: 0.875rem;
+.date-picker-input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 1.125rem center !important;
+    background-size: 20px !important;
 }
 
-.react-datepicker__navigation-icon::before {
-    border-color: white;
+/* Responsive */
+@media (max-width: 768px) {
+    .login-container {
+        padding: 1rem;
+    }
+
+    .login-card {
+        padding: 2.5rem 1.5rem;
+        border-radius: 24px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .auth-tabs {
+        gap: 1.5rem;
+    }
+
+    .login-logo {
+        height: 70px;
+    }
 }
 
-.react-datepicker__navigation:hover *::before {
-    border-color: rgba(255, 255, 255, 0.8);
+/* Success State Integration */
+.registration-success-card {
+    padding: 1.5rem 0.5rem;
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-.react-datepicker__year-dropdown {
-    background-color: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+.registration-success-card .modal-icon-container {
+    width: 64px;
+    height: 64px;
+    background-color: #f0fdf4;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    color: #22c55e;
 }
 
-.react-datepicker__year-option:hover {
-    background-color: #007bff;
-    color: white;
+.registration-success-card .modal-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+}
+
+.registration-success-card .modal-message {
+    font-size: 1rem;
+    color: #475569;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    max-width: 400px;
+    text-align: center;
+}
+
+.registration-success-card .modal-message strong {
+    color: #0066cc;
+    font-weight: 700;
 }

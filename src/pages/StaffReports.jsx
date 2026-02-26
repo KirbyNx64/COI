@@ -5,6 +5,7 @@ import {
     exportToPDF,
     exportToExcel
 } from '../services/reportService';
+import { getAllPatients } from '../services/staffService';
 import './StaffReports.css';
 
 const StaffReports = () => {
@@ -14,6 +15,7 @@ const StaffReports = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState('');
+    const [patientsMap, setPatientsMap] = useState({});
 
     // Filter states
     const [startDate, setStartDate] = useState('');
@@ -25,6 +27,10 @@ const StaffReports = () => {
     // Sort state
     const [sortColumn, setSortColumn] = useState('date');
     const [sortDirection, setSortDirection] = useState('desc');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         // Set default date range (last 30 days)
@@ -59,7 +65,23 @@ const StaffReports = () => {
             setError('Error al cargar los datos del reporte');
             console.error('Error loading report data:', loadError);
         } else {
-            setAppointments(data);
+            // Load patients to map DUIs for old records
+            const { patients } = await getAllPatients();
+            const pMap = {};
+            if (patients) {
+                patients.forEach(p => {
+                    pMap[p.id] = p.dui;
+                });
+                setPatientsMap(pMap);
+            }
+
+            // Enrich data with DUIs from map if missing
+            const enrichedData = data.map(apt => ({
+                ...apt,
+                dui: apt.patientDui || apt.dui || pMap[apt.userId] || 'N/A'
+            }));
+
+            setAppointments(enrichedData);
         }
 
         setIsLoading(false);
@@ -80,11 +102,14 @@ const StaffReports = () => {
 
         // Apply search filter
         if (searchTerm.trim() !== '') {
-            const searchLower = searchTerm.toLowerCase();
+            const searchLower = searchTerm.toLowerCase().replace(/-/g, '');
             filtered = filtered.filter(apt => {
                 const patientName = (apt.patientName || '').toLowerCase();
                 const reason = (apt.reason || '').toLowerCase();
-                return patientName.includes(searchLower) || reason.includes(searchLower);
+                const duiRaw = (apt.dui || '').replace(/-/g, '');
+                return patientName.includes(searchLower) ||
+                    reason.includes(searchLower) ||
+                    duiRaw.includes(searchLower);
             });
         }
 
@@ -121,6 +146,18 @@ const StaffReports = () => {
 
         setFilteredAppointments(filtered);
         setStatistics(generateReportStatistics(filtered));
+        setCurrentPage(1); // Reset to first page on filter change
+    };
+
+    // Pagination logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentResults = filteredAppointments.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+
+    const paginate = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleSort = (column) => {
@@ -208,7 +245,7 @@ const StaffReports = () => {
         <div className="staff-reports">
             <div className="reports-header">
                 <h1>
-                    <svg className="header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="reports-page-title-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
                         <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -279,7 +316,7 @@ const StaffReports = () => {
                     <div className="reports-search-box">
                         <input
                             type="text"
-                            placeholder="Buscar por paciente o motivo..."
+                            placeholder="Buscar por paciente, DUI o motivo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="reports-search-input"
@@ -305,75 +342,95 @@ const StaffReports = () => {
             {statistics && (
                 <div className="reports-statistics-section">
                     <div className="reports-stat-card reports-stat-total">
-                        <div className="reports-stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
+                        <div className="reports-stat-top">
+                            <div className="reports-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                            </div>
                         </div>
                         <div className="reports-stat-content">
                             <h3>Total de Citas</h3>
-                            <p className="reports-stat-number">{statistics.total}</p>
+                            <div className="reports-stat-main">
+                                <p className="reports-stat-number">{statistics.total}</p>
+                            </div>
                         </div>
                     </div>
 
                     <div className="reports-stat-card reports-stat-programada">
-                        <div className="reports-stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
+                        <div className="reports-stat-top">
+                            <div className="reports-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
                         </div>
                         <div className="reports-stat-content">
                             <h3>Programadas</h3>
-                            <p className="reports-stat-number">{statistics.byStatus.programada}</p>
-                            <p className="reports-stat-percentage">{statistics.percentages.programada}%</p>
+                            <div className="reports-stat-main">
+                                <p className="reports-stat-number">{statistics.byStatus.programada}</p>
+                                <p className="reports-stat-percentage">{statistics.percentages.programada}%</p>
+                            </div>
                         </div>
                     </div>
 
                     <div className="reports-stat-card reports-stat-terminada">
-                        <div className="reports-stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                            </svg>
+                        <div className="reports-stat-top">
+                            <div className="reports-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                            </div>
                         </div>
                         <div className="reports-stat-content">
                             <h3>Terminadas</h3>
-                            <p className="reports-stat-number">{statistics.byStatus.terminada}</p>
-                            <p className="reports-stat-percentage">{statistics.percentages.terminada}%</p>
+                            <div className="reports-stat-main">
+                                <p className="reports-stat-number">{statistics.byStatus.terminada}</p>
+                                <p className="reports-stat-percentage">{statistics.percentages.terminada}%</p>
+                            </div>
                         </div>
                     </div>
 
                     <div className="reports-stat-card reports-stat-cancelada">
-                        <div className="reports-stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                            </svg>
+                        <div className="reports-stat-top">
+                            <div className="reports-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                </svg>
+                            </div>
                         </div>
                         <div className="reports-stat-content">
                             <h3>Canceladas</h3>
-                            <p className="reports-stat-number">{statistics.byStatus.cancelada}</p>
-                            <p className="reports-stat-percentage">{statistics.percentages.cancelada}%</p>
+                            <div className="reports-stat-main">
+                                <p className="reports-stat-number">{statistics.byStatus.cancelada}</p>
+                                <p className="reports-stat-percentage">{statistics.percentages.cancelada}%</p>
+                            </div>
                         </div>
                     </div>
 
                     <div className="reports-stat-card reports-stat-perdida">
-                        <div className="reports-stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
+                        <div className="reports-stat-top">
+                            <div className="reports-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                            </div>
                         </div>
                         <div className="reports-stat-content">
                             <h3>Perdidas</h3>
-                            <p className="reports-stat-number">{statistics.byStatus.perdida}</p>
-                            <p className="reports-stat-percentage">{statistics.percentages.perdida}%</p>
+                            <div className="reports-stat-main">
+                                <p className="reports-stat-number">{statistics.byStatus.perdida}</p>
+                                <p className="reports-stat-percentage">{statistics.percentages.perdida}%</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -477,14 +534,27 @@ const StaffReports = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredAppointments.map((appointment) => (
+                            {currentResults.map((appointment) => (
                                 <tr key={appointment.id}>
-                                    <td className="reports-date-cell">{formatDate(appointment.date)}</td>
-                                    <td>{appointment.time}</td>
-                                    <td className="reports-patient-name">{appointment.patientName || 'N/A'}</td>
-                                    <td>{getClinicaLabel(appointment.clinica)}</td>
-                                    <td className="reports-reason-cell">{appointment.reason || 'N/A'}</td>
-                                    <td>
+                                    <td data-label="Fecha" className="reports-date-cell">
+                                        <span>{formatDate(appointment.date)}</span>
+                                    </td>
+                                    <td data-label="Hora">
+                                        <span>{appointment.time}</span>
+                                    </td>
+                                    <td data-label="Paciente" className="reports-patient-cell">
+                                        <div className="reports-patient-info">
+                                            <span className="reports-patient-name">{appointment.patientName || 'N/A'}</span>
+                                            <span className="reports-patient-dui">{appointment.dui}</span>
+                                        </div>
+                                    </td>
+                                    <td data-label="Clínica">
+                                        <span>{getClinicaLabel(appointment.clinica)}</span>
+                                    </td>
+                                    <td data-label="Motivo" className="reports-reason-cell">
+                                        <span>{appointment.reason || 'N/A'}</span>
+                                    </td>
+                                    <td data-label="Estado">
                                         <span className={`status-badge status-${appointment.status}`}>
                                             {getStatusLabel(appointment.status)}
                                         </span>
@@ -493,6 +563,38 @@ const StaffReports = () => {
                             ))}
                         </tbody>
                     </table>
+
+                    {totalPages > 1 && (
+                        <div className="pagination">
+                            <button
+                                onClick={() => paginate(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="pagination-btn"
+                            >
+                                &laquo; Anterior
+                            </button>
+
+                            <div className="pagination-numbers">
+                                {[...Array(totalPages)].map((_, index) => (
+                                    <button
+                                        key={index + 1}
+                                        onClick={() => paginate(index + 1)}
+                                        className={`pagination-number ${currentPage === index + 1 ? 'active' : ''}`}
+                                    >
+                                        {index + 1}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => paginate(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="pagination-btn"
+                            >
+                                Siguiente &raquo;
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

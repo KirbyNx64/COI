@@ -439,8 +439,8 @@ function Home({ userData }) {
                             </div>
                         </>
                     ) : (
-                        <div className="empty-state">
-                            <div className="empty-icon">
+                        <div className="empty-state-card-new">
+                            <div className="empty-icon-box-new">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                                     <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -450,7 +450,7 @@ function Home({ userData }) {
                             </div>
                             <h3>No tienes citas programadas</h3>
                             <p>Agenda tu próxima cita con nosotros</p>
-                            <Link to="/cita" className="cta-button">
+                            <Link to="/cita" className="cta-button-primary-new">
                                 Agendar Cita
                             </Link>
                         </div>
@@ -460,8 +460,8 @@ function Home({ userData }) {
                 {/* Sección Recetas */}
                 <section className="prescriptions-section">
                     <h2 className="section-title">Recetas</h2>
-                    <div className="content-card">
-                        <div className="card-icon">
+                    <div className="content-card prescriptions-card-new">
+                        <div className="card-icon icon-prescriptions-new">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
@@ -502,8 +502,8 @@ function Home({ userData }) {
                 {/* Sección Historial Clínico */}
                 <section className="medical-history-section">
                     <h2 className="section-title">Historial Clínico</h2>
-                    <div className="content-card">
-                        <div className="card-icon">
+                    <div className="content-card history-card-new">
+                        <div className="card-icon icon-history-new">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
@@ -540,30 +540,10 @@ function Home({ userData }) {
 
             {/* Modal de Lista de Recetas Médicas */}
             {showPrescriptionModal && (
-                <div className="modal-overlay" onClick={() => setShowPrescriptionModal(false)} style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
-                        backgroundColor: 'white',
-                        padding: '2rem',
-                        borderRadius: '16px',
-                        maxWidth: '600px',
-                        width: '90%',
-                        maxHeight: '85vh',
-                        overflowY: 'auto',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
-                            <h2 style={{ margin: 0, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="modal-overlay" onClick={() => setShowPrescriptionModal(false)}>
+                    <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="prescription-title">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
@@ -572,10 +552,15 @@ function Home({ userData }) {
                                 </svg>
                                 Tus Recetas Médicas
                             </h2>
-                            <button onClick={() => setShowPrescriptionModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#666' }}>&times;</button>
+                            <button className="close-modal-btn" onClick={() => setShowPrescriptionModal(false)} aria-label="Cerrar">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+                        <div className="modal-body">
                             {[...allAppointments]
                                 .filter(app => app.recetaMedica && app.recetaMedica.trim())
                                 .sort((a, b) => {
@@ -583,75 +568,33 @@ function Home({ userData }) {
                                     const dateB = new Date(`${b.date} ${b.time}`);
                                     return dateB - dateA;
                                 })
-                                .slice(0, 3)
+                                .slice(0, 5) // Increase to 5 for more history
                                 .map((app, index) => (
-                                    <div key={app.id} style={{
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '12px',
-                                        padding: '1.25rem',
-                                        backgroundColor: index === 0 ? '#f0fdf4' : '#fff',
-                                        borderLeft: `4px solid ${index === 0 ? '#10b981' : '#d1d5db'}`
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                            <span style={{ fontWeight: 'bold', color: '#374151' }}>
-                                                Cita del {app.date}
-                                            </span>
-                                            <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                                                {app.reason}
-                                            </span>
+                                    <div key={app.id} className={`prescription-item ${index === 0 ? 'latest' : ''}`}>
+                                        <div className="item-meta">
+                                            <span className="item-date">Cita del {app.date}</span>
+                                            <span className="item-badge">{index === 0 ? 'Más reciente' : 'Anterior'}</span>
                                         </div>
-                                        <pre style={{
-                                            whiteSpace: 'pre-wrap',
-                                            fontFamily: 'inherit',
-                                            color: '#4b5563',
-                                            lineHeight: '1.5',
-                                            margin: 0,
-                                            fontSize: '0.95rem'
-                                        }}>
-                                            {app.recetaMedica}
-                                        </pre>
+                                        <pre className="prescription-content">{app.recetaMedica}</pre>
                                     </div>
                                 ))}
                         </div>
 
-                        <button
-                            onClick={() => setShowPrescriptionModal(false)}
-                            className="cta-button"
-                            style={{ width: '100%', border: 'none' }}
-                        >
-                            Cerrar
-                        </button>
+                        <div className="modal-footer">
+                            <button className="modal-close-btn btn-green" onClick={() => setShowPrescriptionModal(false)}>
+                                Cerrar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Modal de Historial Clínico (Diagnósticos) */}
             {showHistoryModal && (
-                <div className="modal-overlay" onClick={() => setShowHistoryModal(false)} style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
-                        backgroundColor: 'white',
-                        borderRadius: '16px',
-                        maxWidth: '700px',
-                        width: '90%',
-                        maxHeight: '85vh',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ margin: 0, color: '#f97316', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem' }}>
+                <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
+                    <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="history-title">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
@@ -661,60 +604,49 @@ function Home({ userData }) {
                                 </svg>
                                 Mi Historial Médico (Diagnósticos)
                             </h2>
-                            <button onClick={() => setShowHistoryModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#666' }}>&times;</button>
+                            <button className="close-modal-btn" onClick={() => setShowHistoryModal(false)} aria-label="Cerrar">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {[...allAppointments]
-                                    .filter(app => (app.status === 'terminada' || app.diagnostico))
-                                    .sort((a, b) => {
-                                        const dateA = new Date(`${a.date} ${a.time}`);
-                                        const dateB = new Date(`${b.date} ${b.time}`);
-                                        return dateB - dateA;
-                                    })
-                                    .map((app) => (
-                                        <div key={app.id} style={{
-                                            border: '1px solid #e5e7eb',
-                                            borderRadius: '12px',
-                                            padding: '1.25rem',
-                                            backgroundColor: '#fdfaf9',
-                                            borderLeft: '4px solid #f97316'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                <span style={{ fontWeight: 'bold', color: '#1e293b' }}>
-                                                    {app.date} - {app.time}
-                                                </span>
-                                                <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>
-                                                    {app.clinica ? getClinicaLabel(app.clinica).toUpperCase() : ''}
-                                                </span>
-                                            </div>
-                                            <div style={{ marginBottom: '0.5rem' }}>
-                                                <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Motivo de la cita:</label>
-                                                <p style={{ margin: '0.1rem 0 0 0', color: '#334155' }}>{app.reason || 'N/A'}</p>
-                                            </div>
-                                            {app.diagnostico ? (
-                                                <div style={{ marginTop: '0.75rem', backgroundColor: '#fff7ed', padding: '1rem', borderRadius: '8px', border: '1px solid #ffedd5' }}>
-                                                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#c2410c', fontWeight: 'bold', marginBottom: '0.25rem' }}>DIAGNÓSTICO:</label>
-                                                    <p style={{ margin: 0, color: '#431407', fontSize: '1rem', lineHeight: '1.5' }}>{app.diagnostico}</p>
-                                                </div>
-                                            ) : (
-                                                <p style={{ margin: '0.75rem 0 0 0', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.9rem' }}>Diagnóstico no registrado aún por el médico.</p>
-                                            )}
+                        <div className="modal-body">
+                            {[...allAppointments]
+                                .filter(app => (app.status === 'terminada' || app.diagnostico))
+                                .sort((a, b) => {
+                                    const dateA = new Date(`${a.date} ${a.time}`);
+                                    const dateB = new Date(`${b.date} ${b.time}`);
+                                    return dateB - dateA;
+                                })
+                                .map((app) => (
+                                    <div key={app.id} className="history-item">
+                                        <div className="item-meta">
+                                            <span className="item-date">{app.date} - {app.time}</span>
+                                            <span className="item-location">{app.clinica ? getClinicaLabel(app.clinica) : ''}</span>
                                         </div>
-                                    ))}
-                                {[...allAppointments].filter(app => (app.status === 'terminada' || app.diagnostico)).length === 0 && (
-                                    <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem' }}>No tienes registros médicos terminados o con diagnóstico aún.</p>
-                                )}
-                            </div>
+                                        <div className="history-reason">
+                                            <label>Motivo:</label>
+                                            <p>{app.reason || 'N/A'}</p>
+                                        </div>
+                                        {app.diagnostico ? (
+                                            <div className="history-diagnosis">
+                                                <label>DIAGNÓSTICO:</label>
+                                                <p>{app.diagnostico}</p>
+                                            </div>
+                                        ) : (
+                                            <p className="history-unregistered">Diagnóstico no registrado aún.</p>
+                                        )}
+                                    </div>
+                                ))}
+                            {[...allAppointments].filter(app => (app.status === 'terminada' || app.diagnostico)).length === 0 && (
+                                <p className="history-empty-message">No tienes registros médicos terminados o con diagnóstico aún.</p>
+                            )}
                         </div>
 
-                        <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #eee' }}>
-                            <button
-                                onClick={() => setShowHistoryModal(false)}
-                                className="cta-button"
-                                style={{ width: '100%', border: 'none' }}
-                            >
+                        <div className="modal-footer">
+                            <button className="modal-close-btn btn-orange" onClick={() => setShowHistoryModal(false)}>
                                 Cerrar
                             </button>
                         </div>

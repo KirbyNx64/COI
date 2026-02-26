@@ -20,10 +20,10 @@
     gap: 0.75rem;
 }
 
-.appointments-header .header-icon {
+.appointments-header .appointments-page-title-icon {
     width: 40px;
     height: 40px;
-    color: #2c5282;
+    color: #1e3a5f !important;
 }
 
 .appointments-header .subtitle {
@@ -39,7 +39,7 @@
 
 .filter-row {
     display: grid;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: 1fr auto auto auto auto;
     gap: 1rem;
     margin-bottom: 1rem;
     align-items: center;
@@ -107,6 +107,41 @@
     background: #f8fafc;
     border-radius: 12px;
     display: inline-block;
+}
+
+.refresh-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.875rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background-color: #f8fafc;
+    color: #2c5282;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+}
+
+.refresh-button:hover:not(:disabled) {
+    background-color: #ebf8ff;
+    border-color: #2c5282;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.refresh-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.refresh-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background-color: #f1f5f9;
+}
+
+.refresh-button.spinning svg {
+    animation: spin 1s linear infinite;
 }
 
 /* Loading and Error States */
@@ -665,5 +700,87 @@
     to {
         transform: translateX(0);
         opacity: 1;
+    }
+}
+
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    gap: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.pagination-btn {
+    padding: 0.6rem 1.25rem;
+    background-color: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    color: #2c5282;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: #2c5282;
+    background-color: #f0f7ff;
+    transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f1f5f9;
+}
+
+.pagination-numbers {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pagination-number {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pagination-number:hover {
+    border-color: #2c5282;
+    color: #2c5282;
+}
+
+.pagination-number.active {
+    background-color: #2c5282;
+    border-color: #2c5282;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(44, 82, 130, 0.2);
+}
+
+@media (max-width: 768px) {
+    .pagination {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .pagination-numbers {
+        order: -1;
+    }
+
+    .pagination-btn {
+        width: 100%;
     }
 }

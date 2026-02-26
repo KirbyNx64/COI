@@ -272,59 +272,83 @@ function AppointmentConfirmation() {
     };
 
     return (
-        <div className="confirmation-page">
-            <div className="container">
-                <div className="confirmation-card">
-                    <div className="success-icon">
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+        <div className="cnf-page">
+            <div className="cnf-container">
+                <div className="cnf-card">
+                    <div className="cnf-success-box">
+                        <div className="cnf-success-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </div>
                     </div>
-                    <h1>¡Cita Agendada Exitosamente!</h1>
-                    <p className="confirmation-message">
-                        Hemos recibido tu solicitud. Te contactaremos pronto para confirmar los detalles.
+
+                    <h1 className="cnf-title">¡Cita Agendada!</h1>
+                    <p className="cnf-subtitle">
+                        Hemos recibido tu solicitud. Te contactaremos pronto para confirmar los detalles finales.
                     </p>
 
-                    <div className="appointment-details">
-                        <h3>Detalles de la Cita</h3>
-                        <div className="detail-row">
-                            <span className="label">Motivo:</span>
-                            <span className="value">{motivosMap[appointment.motivo] || appointment.motivo}</span>
+                    <div className="cnf-details-container">
+                        <h3 className="cnf-details-title">Resumen de la Cita</h3>
+
+                        <div className="cnf-detail-grid">
+                            <div className="cnf-detail-item">
+                                <span className="cnf-label">Motivo</span>
+                                <span className="cnf-value">{motivosMap[appointment.motivo] || appointment.motivo}</span>
+                            </div>
+
+                            <div className="cnf-detail-item">
+                                <span className="cnf-label">Clínica</span>
+                                <span className="cnf-value">{clinicasMap[appointment.clinica]?.name || appointment.clinica}</span>
+                            </div>
+
+                            <div className="cnf-detail-item">
+                                <span className="cnf-label">Fecha</span>
+                                <div className="cnf-value-box">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="cnf-inline-icon">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" />
+                                        <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" />
+                                        <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" />
+                                    </svg>
+                                    <span className="cnf-value">
+                                        {new Date(appointment.fecha + 'T00:00:00').toLocaleDateString('es-SV', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="cnf-detail-item">
+                                <span className="cnf-label">Hora</span>
+                                <div className="cnf-value-box">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="cnf-inline-icon">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                                        <polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" />
+                                    </svg>
+                                    <span className="cnf-value">{appointment.hora}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="detail-row">
-                            <span className="label">Clínica:</span>
-                            <span className="value">{clinicasMap[appointment.clinica]?.name || appointment.clinica}</span>
-                        </div>
-                        <div className="detail-row">
-                            <span className="label">Fecha:</span>
-                            <span className="value">
-                                {new Date(appointment.fecha + 'T00:00:00').toLocaleDateString('es-SV', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
-                            </span>
-                        </div>
-                        <div className="detail-row">
-                            <span className="label">Hora:</span>
-                            <span className="value">{appointment.hora}</span>
-                        </div>
+
                         {appointment.notas && (
-                            <div className="detail-row">
-                                <span className="label">Notas:</span>
-                                <span className="value">{appointment.notas}</span>
+                            <div className="cnf-notes-box">
+                                <span className="cnf-label">Notas adicionales</span>
+                                <p className="cnf-notes">{appointment.notas}</p>
                             </div>
                         )}
                     </div>
 
-                    <div className="actions">
-                        <Link to="/" className="btn-secondary">Volver al Inicio</Link>
-                        <button onClick={handleDownloadPDF} className="btn-primary">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '20px', height: '20px', marginRight: '8px', verticalAlign: 'text-bottom' }}>
+                    <div className="cnf-actions">
+                        <Link to="/" className="cnf-btn cnf-btn-secondary">Volver al Inicio</Link>
+                        <button onClick={handleDownloadPDF} className="cnf-btn cnf-btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '20px', height: '20px' }}>
                                 <path d="M12 15L12 3M12 15L8 11M12 15L16 11M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            Descargar Comprobante
+                            <span>Descargar Comprobante</span>
                         </button>
                     </div>
                 </div>

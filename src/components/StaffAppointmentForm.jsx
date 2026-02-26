@@ -178,6 +178,7 @@ function StaffAppointmentForm({ patientData, onSuccess, onCancel }) {
             // Create appointment for patient
             const appointmentData = {
                 patientName,
+                patientDui: patientData.dui || '',
                 date: formData.fecha,
                 time: formData.hora,
                 reason: reasonLabel,
@@ -218,186 +219,187 @@ function StaffAppointmentForm({ patientData, onSuccess, onCancel }) {
     return (
         <div className="appointment-form-container">
             <div className="form-header">
-                <h2>Programar Cita para Paciente</h2>
                 <p className="patient-info">
-                    <strong>Paciente:</strong> {patientData.nombres} {patientData.apellidos}
+                    <strong>Paciente</strong> {patientData.nombres} {patientData.apellidos}
                 </p>
             </div>
 
             <form onSubmit={handleSubmit} className="appointment-form" noValidate>
-                {/* Información de la Cita */}
-                <div className="form-section">
-                    <h3>Información de la Cita</h3>
+                <div className="stf-apt-scroll-body">
+                    {/* Información de la Cita */}
+                    <div className="form-section">
+                        <h3>Información de la Cita</h3>
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="motivo">
-                                Motivo de la cita <span className="required">*</span>
-                            </label>
-                            <select
-                                id="motivo"
-                                name="motivo"
-                                value={formData.motivo}
-                                onChange={handleChange}
-                                className={`${errors.motivo ? 'error' : ''} ${!formData.motivo ? 'placeholder' : ''}`}
-                            >
-                                {motivosOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.motivo && (
-                                <span className="error-message">{errors.motivo}</span>
-                            )}
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label htmlFor="motivo">
+                                    Motivo de la cita <span className="required">*</span>
+                                </label>
+                                <select
+                                    id="motivo"
+                                    name="motivo"
+                                    value={formData.motivo}
+                                    onChange={handleChange}
+                                    className={`${errors.motivo ? 'error' : ''} ${!formData.motivo ? 'placeholder' : ''}`}
+                                >
+                                    {motivosOptions.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.motivo && (
+                                    <span className="error-message">{errors.motivo}</span>
+                                )}
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="clinica">
+                                    Clínica de preferencia <span className="required">*</span>
+                                </label>
+                                <select
+                                    id="clinica"
+                                    name="clinica"
+                                    value={formData.clinica}
+                                    onChange={handleChange}
+                                    className={`${errors.clinica ? 'error' : ''} ${!formData.clinica ? 'placeholder' : ''}`}
+                                >
+                                    {clinicasOptions.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.clinica && (
+                                    <span className="error-message">{errors.clinica}</span>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="clinica">
-                                Clínica de preferencia <span className="required">*</span>
-                            </label>
-                            <select
-                                id="clinica"
-                                name="clinica"
-                                value={formData.clinica}
-                                onChange={handleChange}
-                                className={`${errors.clinica ? 'error' : ''} ${!formData.clinica ? 'placeholder' : ''}`}
-                            >
-                                {clinicasOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.clinica && (
-                                <span className="error-message">{errors.clinica}</span>
-                            )}
-                        </div>
-                    </div>
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label htmlFor="fecha">
+                                    Fecha de la cita <span className="required">*</span>
+                                </label>
+                                <DatePicker
+                                    selected={formData.fecha ? new Date(formData.fecha + 'T00:00:00') : null}
+                                    onChange={(date) => {
+                                        if (date) {
+                                            // Check if it's a Sunday
+                                            if (date.getDay() === 0) {
+                                                setWarningMessage('No se pueden agendar citas los domingos. Por favor, selecciona otro día.');
+                                                setShowWarningModal(true);
+                                                return;
+                                            }
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="fecha">
-                                Fecha de la cita <span className="required">*</span>
-                            </label>
-                            <DatePicker
-                                selected={formData.fecha ? new Date(formData.fecha + 'T00:00:00') : null}
-                                onChange={(date) => {
-                                    if (date) {
-                                        // Check if it's a Sunday
-                                        if (date.getDay() === 0) {
-                                            setWarningMessage('No se pueden agendar citas los domingos. Por favor, selecciona otro día.');
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            const formattedDate = `${year}-${month}-${day}`;
+
+                                            setFormData(prev => ({ ...prev, fecha: formattedDate }));
+                                            if (errors.fecha) {
+                                                setErrors(prev => ({ ...prev, fecha: '' }));
+                                            }
+                                        } else {
+                                            setFormData(prev => ({ ...prev, fecha: '' }));
+                                        }
+                                    }}
+                                    minDate={tomorrow}
+                                    filterDate={(date) => date.getDay() !== 0} // Block Sundays
+                                    dateFormat="dd/MM/yyyy"
+                                    locale="es"
+                                    placeholderText="Selecciona una fecha"
+                                    className={`date-picker-input ${errors.fecha ? 'error' : ''}`}
+                                    calendarClassName="custom-calendar"
+                                    autoComplete="off"
+                                    onChangeRaw={(e) => e.preventDefault()}
+                                />
+                                {!formData.fecha && !errors.fecha && (
+                                    <span className="field-hint">Haz clic para seleccionar una fecha</span>
+                                )}
+                                {errors.fecha && (
+                                    <span className="error-message">{errors.fecha}</span>
+                                )}
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="hora">
+                                    Hora de la cita <span className="required">*</span>
+                                </label>
+                                <select
+                                    id="hora"
+                                    name="hora"
+                                    value={formData.hora}
+                                    onChange={handleChange}
+                                    className={`${errors.hora ? 'error' : ''} ${!formData.hora ? 'placeholder' : ''}`}
+                                    disabled={loadingHours}
+                                    onMouseDown={(e) => {
+                                        if (!formData.fecha || !formData.clinica) {
+                                            e.preventDefault();
+                                            setWarningMessage('Por favor, selecciona una clínica y una fecha antes de elegir la hora.');
                                             setShowWarningModal(true);
-                                            return;
                                         }
-
-                                        const year = date.getFullYear();
-                                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                                        const day = String(date.getDate()).padStart(2, '0');
-                                        const formattedDate = `${year}-${month}-${day}`;
-
-                                        setFormData(prev => ({ ...prev, fecha: formattedDate }));
-                                        if (errors.fecha) {
-                                            setErrors(prev => ({ ...prev, fecha: '' }));
-                                        }
-                                    } else {
-                                        setFormData(prev => ({ ...prev, fecha: '' }));
-                                    }
-                                }}
-                                minDate={tomorrow}
-                                filterDate={(date) => date.getDay() !== 0} // Block Sundays
-                                dateFormat="dd/MM/yyyy"
-                                locale="es"
-                                placeholderText="Selecciona una fecha"
-                                className={`date-picker-input ${errors.fecha ? 'error' : ''}`}
-                                calendarClassName="custom-calendar"
-                                autoComplete="off"
-                                onChangeRaw={(e) => e.preventDefault()}
-                            />
-                            {!formData.fecha && !errors.fecha && (
-                                <span className="field-hint">Haz clic para seleccionar una fecha</span>
-                            )}
-                            {errors.fecha && (
-                                <span className="error-message">{errors.fecha}</span>
-                            )}
+                                    }}
+                                >
+                                    <option value="">
+                                        {loadingHours
+                                            ? 'Cargando horas disponibles...'
+                                            : !formData.fecha || !formData.clinica
+                                                ? 'Selecciona una hora'
+                                                : availableHours.length === 0
+                                                    ? 'No hay horas disponibles'
+                                                    : 'Selecciona una hora'}
+                                    </option>
+                                    {availableHours.map(hora => (
+                                        <option key={hora} value={hora}>
+                                            {hora}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.hora && (
+                                    <span className="error-message">{errors.hora}</span>
+                                )}
+                                {formData.fecha && formData.clinica && !loadingHours && availableHours.length === 0 && (
+                                    <span className="info-message" style={{ color: '#0066cc', fontSize: '0.9rem', marginTop: '0.25rem', display: 'block' }}>
+                                        ℹ️ Todas las horas están ocupadas para esta fecha. Por favor, selecciona otro día.
+                                    </span>
+                                )}
+                            </div>
                         </div>
+                    </div>
+
+                    {/* Notas Adicionales */}
+                    <div className="form-section">
+                        <h3>Notas Adicionales</h3>
 
                         <div className="form-group">
-                            <label htmlFor="hora">
-                                Hora de la cita <span className="required">*</span>
+                            <label htmlFor="notas">
+                                Información adicional (opcional)
                             </label>
-                            <select
-                                id="hora"
-                                name="hora"
-                                value={formData.hora}
+                            <textarea
+                                id="notas"
+                                name="notas"
+                                value={formData.notas}
                                 onChange={handleChange}
-                                className={`${errors.hora ? 'error' : ''} ${!formData.hora ? 'placeholder' : ''}`}
-                                disabled={loadingHours}
-                                onMouseDown={(e) => {
-                                    if (!formData.fecha || !formData.clinica) {
-                                        e.preventDefault();
-                                        setWarningMessage('Por favor, selecciona una clínica y una fecha antes de elegir la hora.');
-                                        setShowWarningModal(true);
-                                    }
-                                }}
-                            >
-                                <option value="">
-                                    {loadingHours
-                                        ? 'Cargando horas disponibles...'
-                                        : !formData.fecha || !formData.clinica
-                                            ? 'Selecciona una hora'
-                                            : availableHours.length === 0
-                                                ? 'No hay horas disponibles'
-                                                : 'Selecciona una hora'}
-                                </option>
-                                {availableHours.map(hora => (
-                                    <option key={hora} value={hora}>
-                                        {hora}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.hora && (
-                                <span className="error-message">{errors.hora}</span>
-                            )}
-                            {formData.fecha && formData.clinica && !loadingHours && availableHours.length === 0 && (
-                                <span className="info-message" style={{ color: '#0066cc', fontSize: '0.9rem', marginTop: '0.25rem', display: 'block' }}>
-                                    ℹ️ Todas las horas están ocupadas para esta fecha. Por favor, selecciona otro día.
-                                </span>
-                            )}
+                                placeholder="Información adicional que consideres importante..."
+                                rows="4"
+                            />
                         </div>
                     </div>
+
+                    {/* Display general errors */}
+                    {errors.general && (
+                        <div className="error-message" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#fee', borderRadius: '8px', color: '#c00' }}>
+                            {errors.general}
+                        </div>
+                    )}
                 </div>
 
-                {/* Notas Adicionales */}
-                <div className="form-section">
-                    <h3>Notas Adicionales</h3>
-
-                    <div className="form-group">
-                        <label htmlFor="notas">
-                            Información adicional (opcional)
-                        </label>
-                        <textarea
-                            id="notas"
-                            name="notas"
-                            value={formData.notas}
-                            onChange={handleChange}
-                            placeholder="Información adicional que consideres importante..."
-                            rows="4"
-                        />
-                    </div>
-                </div>
-
-                {/* Display general errors */}
-                {errors.general && (
-                    <div className="error-message" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#fee', borderRadius: '8px', color: '#c00' }}>
-                        {errors.general}
-                    </div>
-                )}
-
-                <div className="form-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <div className="form-actions">
                     <button
                         type="button"
-                        className="btn btn-secondary"
+                        className="stf-cancel-btn"
                         onClick={onCancel}
                         disabled={isSubmitting}
                     >
@@ -405,7 +407,7 @@ function StaffAppointmentForm({ patientData, onSuccess, onCancel }) {
                     </button>
                     <button
                         type="submit"
-                        className="btn btn-primary btn-submit"
+                        className="stf-save-btn btn-submit"
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
@@ -415,7 +417,7 @@ function StaffAppointmentForm({ patientData, onSuccess, onCancel }) {
                             </>
                         ) : (
                             <>
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '18px', height: '18px', marginRight: '8px', verticalAlign: 'middle' }}>
                                     <path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                                 Agendar Cita

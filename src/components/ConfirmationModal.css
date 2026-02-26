@@ -14,10 +14,10 @@
 
 .modal-content {
     background: white;
-    padding: 2rem;
-    border-radius: 16px;
+    padding: 2.5rem;
+    border-radius: 20px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    max-width: 400px;
+    max-width: 450px;
     width: 90%;
     text-align: center;
     animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -25,16 +25,17 @@
 }
 
 .modal-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1a1a1a;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
     margin-bottom: 0.75rem;
 }
 
 .modal-message {
-    color: #666;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
+    color: #475569;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    font-size: 1rem;
 }
 
 .modal-actions {
@@ -44,29 +45,28 @@
 }
 
 .modal-btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    font-size: 0.95rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
     flex: 1;
 }
 
 .modal-btn-cancel {
-    background-color: #f3f4f6;
-    color: #4b5563;
+    background-color: #f1f5f9;
+    color: #475569;
 }
 
 .modal-btn-cancel:hover {
-    background-color: #e5e7eb;
+    background-color: #e2e8f0;
     transform: translateY(-1px);
 }
 
 .modal-btn-confirm {
     background-color: #ef4444;
-    /* Red for destructive action like cancel appointment */
     color: white;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
@@ -102,7 +102,6 @@
 /* Success Modal Specific Styles */
 .success-modal .modal-btn-confirm {
     background-color: #3b82f6;
-    /* Blue for success */
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
@@ -117,7 +116,38 @@
 
 .success-modal .modal-btn {
     flex: 0 1 auto;
-    min-width: 120px;
+    min-width: 140px;
+}
+
+/* Modal Icon Container & Success Icon */
+.modal-icon-container {
+    width: 72px;
+    height: 72px;
+    background-color: #f0fdf4;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    animation: icon-scale-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.modal-success-icon {
+    width: 40px;
+    height: 40px;
+    color: #22c55e;
+}
+
+@keyframes icon-scale-up {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 /* Error Modal Specific Styles */
@@ -132,7 +162,6 @@
 
 .error-modal .modal-btn-confirm {
     background-color: #dc2626;
-    /* Red for error */
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
@@ -147,5 +176,5 @@
 
 .error-modal .modal-btn {
     flex: 0 1 auto;
-    min-width: 120px;
+    min-width: 140px;
 }

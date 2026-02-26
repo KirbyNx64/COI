@@ -55,7 +55,10 @@ export const getAppointmentsByDateRange = async (startDate, endDate, filters = {
             appointments = appointments.filter(apt => {
                 const patientName = (apt.patientName || '').toLowerCase();
                 const reason = (apt.reason || '').toLowerCase();
-                return patientName.includes(searchLower) || reason.includes(searchLower);
+                const dui = (apt.patientDui || apt.dui || '').toLowerCase();
+                return patientName.includes(searchLower) ||
+                    reason.includes(searchLower) ||
+                    dui.includes(searchLower);
             });
         }
 
@@ -123,6 +126,7 @@ export const formatAppointmentsForExport = (appointments) => {
         Fecha: apt.date,
         Hora: apt.time,
         Paciente: apt.patientName || 'N/A',
+        DUI: apt.patientDui || apt.dui || 'N/A',
         Clínica: getClinicaLabel(apt.clinica),
         Motivo: apt.reason || 'N/A',
         Estado: getStatusLabel(apt.status),
@@ -192,12 +196,13 @@ export const exportToPDF = (appointments, filters, stats) => {
         apt.date,
         apt.time,
         apt.patientName || 'N/A',
+        apt.patientDui || apt.dui || 'N/A',
         getClinicaLabel(apt.clinica),
         apt.reason || 'N/A',
         getStatusLabel(apt.status)
     ]);
 
-    const tableColumns = ['Fecha', 'Hora', 'Paciente', 'Clinica', 'Motivo', 'Estado'];
+    const tableColumns = ['Fecha', 'Hora', 'Paciente', 'DUI', 'Clinica', 'Motivo', 'Estado'];
 
     doc.autoTable({
         startY: yPos,
@@ -246,40 +251,81 @@ export const exportToExcel = (appointments, filters, stats) => {
     // Create workbook
     const wb = XLSX.utils.book_new();
 
-    // Statistics sheet
-    const statsData = [
-        ['REPORTE DE CITAS'],
+    // 1. Executive Summary Sheet
+    const summaryHeader = [
+        ['CENTRO ODONTOLÓGICO - REPORTE DE GESTIÓN'],
         [''],
-        ['Período', filters.startDate && filters.endDate ? `${formatDate(filters.startDate)} - ${formatDate(filters.endDate)}` : 'Todas las fechas'],
-        ['Generado', new Date().toLocaleString('es-SV')],
+        ['INFORMACIÓN DEL REPORTE'],
+        ['Período:', filters.startDate && filters.endDate ? `${formatDate(filters.startDate)} - ${formatDate(filters.endDate)}` : 'Todas las fechas'],
+        ['Filtro de Estado:', getStatusLabel(filters.status || 'all')],
+        ['Filtro de Clínica:', getClinicaLabel(filters.clinic || 'all')],
+        ['Fecha de Generación:', new Date().toLocaleString('es-SV')],
         [''],
         ['RESUMEN ESTADÍSTICO'],
-        ['Total de citas', stats.total],
+        ['Categoría', 'Cantidad', 'Distribución %'],
+        ['Citas Programadas', stats.byStatus.programada, `${stats.percentages.programada}%`],
+        ['Citas Terminadas', stats.byStatus.terminada, `${stats.percentages.terminada}%`],
+        ['Citas Canceladas', stats.byStatus.cancelada, `${stats.percentages.cancelada}%`],
+        ['Citas Perdidas', stats.byStatus.perdida, `${stats.percentages.perdida}%`],
+        ['---', '---', '---'],
+        ['TOTAL DE CITAS', stats.total, '100.0%'],
         [''],
-        ['Por Estado', 'Cantidad', 'Porcentaje'],
-        ['Programadas', stats.byStatus.programada, `${stats.percentages.programada}%`],
-        ['Terminadas', stats.byStatus.terminada, `${stats.percentages.terminada}%`],
-        ['Canceladas', stats.byStatus.cancelada, `${stats.percentages.cancelada}%`],
-        ['Perdidas', stats.byStatus.perdida, `${stats.percentages.perdida}%`],
-        [''],
-        ['Por Clínica', 'Cantidad'],
+        ['DESGLOSE POR CLÍNICA'],
+        ['Nombre de Clínica', 'Total de Citas']
     ];
 
     // Add clinic breakdown
     Object.entries(stats.byClinic).forEach(([clinic, count]) => {
-        statsData.push([getClinicaLabel(clinic), count]);
+        summaryHeader.push([getClinicaLabel(clinic), count]);
     });
 
-    const statsSheet = XLSX.utils.aoa_to_sheet(statsData);
-    XLSX.utils.book_append_sheet(wb, statsSheet, 'Resumen');
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryHeader);
 
-    // Appointments sheet
-    const appointmentsData = formatAppointmentsForExport(appointments);
-    const appointmentsSheet = XLSX.utils.json_to_sheet(appointmentsData);
-    XLSX.utils.book_append_sheet(wb, appointmentsSheet, 'Citas');
+    // Merge cells for the title (A1:C1)
+    summarySheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }
+    ];
+
+    // Set Column Widths for Summary
+    summarySheet['!cols'] = [
+        { wch: 30 }, // A
+        { wch: 25 }, // B
+        { wch: 15 }, // C
+    ];
+
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Resumen_Ejecutivo');
+
+    // 2. Appointments Detail Sheet
+    const detailData = appointments.map(apt => ({
+        'FECHA': formatDate(apt.date),
+        'HORA': apt.time,
+        'PACIENTE': apt.patientName || 'N/A',
+        'DUI': apt.patientDui || apt.dui || 'N/A',
+        'CLÍNICA': getClinicaLabel(apt.clinica),
+        'MOTIVO DE CONSULTA': apt.reason || 'N/A',
+        'ESTADO': getStatusLabel(apt.status),
+        'OBSERVACIONES': (apt.notasMedico || '') + (apt.diagnostico ? ` | Diag: ${apt.diagnostico}` : '')
+    }));
+
+    const appointmentsSheet = XLSX.utils.json_to_sheet(detailData);
+
+    // Set Column Widths for Detail
+    appointmentsSheet['!cols'] = [
+        { wch: 20 }, // Fecha
+        { wch: 10 }, // Hora
+        { wch: 30 }, // Paciente
+        { wch: 15 }, // DUI
+        { wch: 20 }, // Clínica
+        { wch: 45 }, // Motivo
+        { wch: 15 }, // Estado
+        { wch: 60 }  // Observaciones
+    ];
+
+    XLSX.utils.book_append_sheet(wb, appointmentsSheet, 'Detalle_de_Citas');
 
     // Save
-    const fileName = `reporte_citas_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const today = new Date().toISOString().split('T')[0];
+    const fileName = `Reporte_Citas_CO_${today}.xlsx`;
     XLSX.writeFile(wb, fileName);
 };
 

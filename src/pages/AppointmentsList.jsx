@@ -173,12 +173,13 @@ function AppointmentsList() {
                                                         backgroundColor: '#f0fdf4',
                                                         padding: '0.75rem',
                                                         borderRadius: '6px',
-                                                        borderLeft: '3px solid #10b981',
                                                         margin: '0',
                                                         whiteSpace: 'pre-wrap',
                                                         fontFamily: 'inherit',
                                                         fontSize: '0.95rem',
-                                                        color: '#333'
+                                                        color: '#333',
+                                                        width: '100%',
+                                                        boxSizing: 'border-box'
                                                     }}>
                                                         {appointment.recetaMedica}
                                                     </pre>
@@ -191,9 +192,10 @@ function AppointmentsList() {
                                                         backgroundColor: '#fff7ed',
                                                         padding: '0.75rem',
                                                         borderRadius: '6px',
-                                                        borderLeft: '3px solid #f97316',
                                                         margin: '0',
-                                                        color: '#431407'
+                                                        color: '#431407',
+                                                        width: '100%',
+                                                        boxSizing: 'border-box'
                                                     }}>
                                                         {appointment.diagnostico}
                                                     </p>
@@ -206,8 +208,9 @@ function AppointmentsList() {
                                                         backgroundColor: '#f0f9ff',
                                                         padding: '0.75rem',
                                                         borderRadius: '6px',
-                                                        borderLeft: '3px solid #0066cc',
-                                                        margin: '0'
+                                                        margin: '0',
+                                                        width: '100%',
+                                                        boxSizing: 'border-box'
                                                     }}>
                                                         {appointment.notasMedico}
                                                     </p>

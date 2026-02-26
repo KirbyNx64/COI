@@ -65,7 +65,7 @@ function Contact() {
                         <div key={clinic.id} className="clinic-card">
                             <div className="clinic-header">
                                 <h2>{clinic.name}</h2>
-                                <span className="location-tag">{clinic.location}</span>
+                                <span className="location-tag-new">{clinic.location}</span>
                             </div>
 
                             <div className="clinic-info">

@@ -24,6 +24,10 @@ const StaffAppointments = () => {
     const [diagnostico, setDiagnostico] = useState('');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     // Toast State
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
@@ -82,6 +86,16 @@ const StaffAppointments = () => {
 
         if (dateFilter === 'today') {
             filtered = filtered.filter(apt => apt.date === todayStr);
+        } else if (dateFilter === 'yesterday') {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            filtered = filtered.filter(apt => apt.date === yesterdayStr);
+        } else if (dateFilter === 'tomorrow') {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            filtered = filtered.filter(apt => apt.date === tomorrowStr);
         } else if (dateFilter === 'week') {
             const weekFromNow = new Date(today);
             weekFromNow.setDate(weekFromNow.getDate() + 7);
@@ -112,7 +126,16 @@ const StaffAppointments = () => {
         }
 
         setFilteredAppointments(filtered);
+        setCurrentPage(1); // Reset to first page on search/filter
     };
+
+    // Pagination logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentAppointmentsSubset = filteredAppointments.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleViewDetails = async (appointment) => {
         setSelectedAppointment(appointment);
@@ -157,18 +180,45 @@ const StaffAppointments = () => {
             console.error('Error updating medical info:', error);
             showToastMessage('Error al guardar la información médica', 'error');
         } else {
-            // Send notification to patient
+            // Determine if a new prescription was added
+            const hasNewPrescription = recetaMedica && recetaMedica.trim() !== '' && recetaMedica !== selectedAppointment.recetaMedica;
+
+            // Determine if other notes (notes or diagnosis) were changed
+            const notesChanged = (notasMedico !== selectedAppointment.notasMedico) ||
+                (diagnostico !== selectedAppointment.diagnostico);
+
+            // Send notifications to patient
             if (selectedAppointment.userId) {
                 try {
-                    await createNotification(
-                        selectedAppointment.userId,
-                        'Nueva nota médica',
-                        `El Dr. ha agregado observaciones a tu cita del ${selectedAppointment.date}.`,
-                        'info',
-                        '/mis-citas' // Link to user's appointments list
-                    );
+                    const promises = [];
+
+                    // Notification for prescription
+                    if (hasNewPrescription) {
+                        promises.push(createNotification(
+                            selectedAppointment.userId,
+                            'Nueva receta médica',
+                            `El Dr. ha emitido una nueva receta médica en tu cita del ${selectedAppointment.date}.`,
+                            'info',
+                            '/mis-citas'
+                        ));
+                    }
+
+                    // Notification for doctor's notes/diagnosis
+                    if (notesChanged) {
+                        promises.push(createNotification(
+                            selectedAppointment.userId,
+                            'Nuevas notas médicas',
+                            `El Dr. ha agregado observaciones a tu cita del ${selectedAppointment.date}.`,
+                            'info',
+                            '/mis-citas'
+                        ));
+                    }
+
+                    if (promises.length > 0) {
+                        await Promise.all(promises);
+                    }
                 } catch (notifError) {
-                    console.error('Error sending notification:', notifError);
+                    console.error('Error sending notifications:', notifError);
                 }
             }
 
@@ -240,7 +290,7 @@ const StaffAppointments = () => {
         <div className="staff-appointments">
             <div className="appointments-header">
                 <h1>
-                    <svg className="header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="appointments-page-title-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                         <line x1="16" y1="2" x2="16" y2="6"></line>
                         <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -270,7 +320,9 @@ const StaffAppointments = () => {
                     <div className="filter-group">
                         <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="filter-select">
                             <option value="all">Todas las fechas</option>
+                            <option value="yesterday">Ayer</option>
                             <option value="today">Hoy</option>
+                            <option value="tomorrow">Mañana</option>
                             <option value="week">Esta semana</option>
                         </select>
 
@@ -290,6 +342,20 @@ const StaffAppointments = () => {
                             <option value="escalon">Escalón</option>
                             <option value="usulutan">Usulután</option>
                         </select>
+
+                        <button
+                            onClick={loadAppointments}
+                            className={`refresh-button ${isLoading ? 'spinning' : ''}`}
+                            title="Actualizar datos"
+                            disabled={isLoading}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 2v6h-6"></path>
+                                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                                <path d="M3 22v-6h6"></path>
+                                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -329,7 +395,7 @@ const StaffAppointments = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredAppointments.map((app) => (
+                            {currentAppointmentsSubset.map((app) => (
                                 <tr
                                     key={app.id}
                                     className={isToday(app.date) ? 'today-appointment' : ''}
@@ -365,6 +431,38 @@ const StaffAppointments = () => {
                             ))}
                         </tbody>
                     </table>
+
+                    {totalPages > 1 && (
+                        <div className="pagination">
+                            <button
+                                onClick={() => paginate(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="pagination-btn"
+                            >
+                                &laquo; Anterior
+                            </button>
+
+                            <div className="pagination-numbers">
+                                {[...Array(totalPages)].map((_, index) => (
+                                    <button
+                                        key={index + 1}
+                                        onClick={() => paginate(index + 1)}
+                                        className={`pagination-number ${currentPage === index + 1 ? 'active' : ''}`}
+                                    >
+                                        {index + 1}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => paginate(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="pagination-btn"
+                            >
+                                Siguiente &raquo;
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 

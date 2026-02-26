@@ -272,6 +272,7 @@ function AppointmentForm({ userData }) {
                 // Crear nueva cita en Firebase
                 const appointmentData = {
                     patientName,
+                    patientDui: userData?.dui || '',
                     date: formData.fecha,
                     time: formData.hora,
                     reason: reasonLabel,
@@ -304,9 +305,10 @@ function AppointmentForm({ userData }) {
     const minDate = tomorrow.toISOString().split('T')[0];
 
     return (
-        <div className="appointment-form-container">
-            <div className="form-header">
+        <div className="apt-container">
+            <div className="apt-header">
                 <h2>{isEditMode ? 'Editar Cita' : 'Agenda tu Cita'}</h2>
+                <div className="apt-header-line"></div>
                 <p>
                     {isEditMode
                         ? 'Modifica los datos de tu cita y guarda los cambios'
@@ -315,148 +317,159 @@ function AppointmentForm({ userData }) {
                 </p>
             </div>
 
-
-
-            <form onSubmit={handleSubmit} className="appointment-form" noValidate>
+            <form onSubmit={handleSubmit} className="apt-form" noValidate>
                 {/* Información de la Cita */}
-                <div className="form-section">
-                    <h3>Información de la Cita</h3>
+                <div className="apt-section">
+                    <div className="apt-section-header">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="apt-section-icon">
+                            <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M13 2V9H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <h3>Información de la Cita</h3>
+                    </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="motivo">
-                                Motivo de la cita <span className="required">*</span>
+                    <div className="apt-row">
+                        <div className="apt-group">
+                            <label htmlFor="motivo" className="apt-label">
+                                <span>Motivo de la cita</span> <span className="apt-required">*</span>
                             </label>
-                            <select
-                                id="motivo"
-                                name="motivo"
-                                value={formData.motivo}
-                                onChange={handleChange}
-                                className={`${errors.motivo ? 'error' : ''} ${!formData.motivo ? 'placeholder' : ''}`}
-                            >
-                                {motivosOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="apt-input-wrapper">
+                                <select
+                                    id="motivo"
+                                    name="motivo"
+                                    value={formData.motivo}
+                                    onChange={handleChange}
+                                    className={`apt-select ${errors.motivo ? 'apt-error' : ''} ${!formData.motivo ? 'apt-placeholder' : ''}`}
+                                >
+                                    {motivosOptions.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             {errors.motivo && (
-                                <span className="error-message">⚠ {errors.motivo}</span>
+                                <span className="apt-error-msg">⚠ {errors.motivo}</span>
                             )}
                         </div>
                     </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="clinica">
-                                Clínica de preferencia <span className="required">*</span>
+                    <div className="apt-row">
+                        <div className="apt-group">
+                            <label htmlFor="clinica" className="apt-label">
+                                <span>Clínica de preferencia</span> <span className="apt-required">*</span>
                             </label>
-                            <select
-                                id="clinica"
-                                name="clinica"
-                                value={formData.clinica}
-                                onChange={handleChange}
-                                className={`${errors.clinica ? 'error' : ''} ${!formData.clinica ? 'placeholder' : ''}`}
-                            >
-                                {clinicasOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="apt-input-wrapper">
+                                <select
+                                    id="clinica"
+                                    name="clinica"
+                                    value={formData.clinica}
+                                    onChange={handleChange}
+                                    className={`apt-select ${errors.clinica ? 'apt-error' : ''} ${!formData.clinica ? 'apt-placeholder' : ''}`}
+                                >
+                                    {clinicasOptions.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             {errors.clinica && (
-                                <span className="error-message">⚠ {errors.clinica}</span>
+                                <span className="apt-error-msg">⚠ {errors.clinica}</span>
                             )}
                         </div>
                     </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="fecha">
-                                Fecha de la cita <span className="required">*</span>
+                    <div className="apt-row apt-two-cols">
+                        <div className="apt-group">
+                            <label htmlFor="fecha" className="apt-label">
+                                <span>Fecha de la cita</span> <span className="apt-required">*</span>
                             </label>
-                            <DatePicker
-                                selected={formData.fecha ? new Date(formData.fecha + 'T00:00:00') : null}
-                                onChange={(date) => {
-                                    if (date) {
-                                        // Check if it's a Sunday
-                                        if (date.getDay() === 0) {
-                                            setWarningMessage('No se pueden agendar citas los domingos. Por favor, selecciona otro día.');
-                                            setShowWarningModal(true);
-                                            return;
-                                        }
+                            <div className="apt-input-wrapper">
+                                <DatePicker
+                                    selected={formData.fecha ? new Date(formData.fecha + 'T00:00:00') : null}
+                                    onChange={(date) => {
+                                        if (date) {
+                                            if (date.getDay() === 0) {
+                                                setWarningMessage('No se pueden agendar citas los domingos. Por favor, selecciona otro día.');
+                                                setShowWarningModal(true);
+                                                return;
+                                            }
 
-                                        const year = date.getFullYear();
-                                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                                        const day = String(date.getDate()).padStart(2, '0');
-                                        const formattedDate = `${year}-${month}-${day}`;
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            const formattedDate = `${year}-${month}-${day}`;
 
-                                        setFormData(prev => ({ ...prev, fecha: formattedDate }));
-                                        if (errors.fecha) {
-                                            setErrors(prev => ({ ...prev, fecha: '' }));
+                                            setFormData(prev => ({ ...prev, fecha: formattedDate }));
+                                            if (errors.fecha) {
+                                                setErrors(prev => ({ ...prev, fecha: '' }));
+                                            }
+                                        } else {
+                                            setFormData(prev => ({ ...prev, fecha: '' }));
                                         }
-                                    } else {
-                                        setFormData(prev => ({ ...prev, fecha: '' }));
-                                    }
-                                }}
-                                minDate={tomorrow}
-                                filterDate={(date) => date.getDay() !== 0} // Block Sundays
-                                dateFormat="dd/MM/yyyy"
-                                locale="es"
-                                placeholderText="Selecciona una fecha"
-                                className={`date-picker-input ${errors.fecha ? 'error' : ''}`}
-                                calendarClassName="custom-calendar"
-                                autoComplete="off"
-                                onChangeRaw={(e) => e.preventDefault()}
-                            />
+                                    }}
+                                    minDate={tomorrow}
+                                    filterDate={(date) => date.getDay() !== 0}
+                                    dateFormat="dd-MM-yyyy"
+                                    locale="es"
+                                    placeholderText="Selecciona una fecha"
+                                    className={`apt-date-picker ${errors.fecha ? 'apt-error' : ''}`}
+                                    calendarClassName="apt-custom-calendar"
+                                    autoComplete="off"
+                                    onChangeRaw={(e) => e.preventDefault()}
+                                />
+                            </div>
                             {!formData.fecha && !errors.fecha && (
-                                <span className="field-hint">Haz clic para seleccionar una fecha</span>
+                                <span className="apt-hint">Haz clic para seleccionar una fecha</span>
                             )}
                             {errors.fecha && (
-                                <span className="error-message">⚠ {errors.fecha}</span>
+                                <span className="apt-error-msg">⚠ {errors.fecha}</span>
                             )}
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="hora">
-                                Hora de la cita <span className="required">*</span>
+                        <div className="apt-group">
+                            <label htmlFor="hora" className="apt-label">
+                                <span>Hora de la cita</span> <span className="apt-required">*</span>
                             </label>
-                            <select
-                                id="hora"
-                                name="hora"
-                                value={formData.hora}
-                                onChange={handleChange}
-                                className={`${errors.hora ? 'error' : ''} ${!formData.hora ? 'placeholder' : ''}`}
-                                disabled={loadingHours}
-                                onMouseDown={(e) => {
-                                    if (!formData.fecha || !formData.clinica) {
-                                        e.preventDefault();
-                                        setWarningMessage('Por favor, selecciona una clínica y una fecha antes de elegir la hora.');
-                                        setShowWarningModal(true);
-                                    }
-                                }}
-                            >
-                                <option value="">
-                                    {loadingHours
-                                        ? 'Cargando horas disponibles...'
-                                        : !formData.fecha || !formData.clinica
-                                            ? 'Selecciona una hora'
-                                            : availableHours.length === 0
-                                                ? 'No hay horas disponibles'
-                                                : 'Selecciona una hora'}
-                                </option>
-                                {availableHours.map(hora => (
-                                    <option key={hora} value={hora}>
-                                        {hora}
+                            <div className="apt-input-wrapper">
+                                <select
+                                    id="hora"
+                                    name="hora"
+                                    value={formData.hora}
+                                    onChange={handleChange}
+                                    className={`apt-select ${errors.hora ? 'apt-error' : ''} ${!formData.hora ? 'apt-placeholder' : ''}`}
+                                    disabled={loadingHours}
+                                    onMouseDown={(e) => {
+                                        if (!formData.fecha || !formData.clinica) {
+                                            e.preventDefault();
+                                            setWarningMessage('Por favor, selecciona una clínica y una fecha antes de elegir la hora.');
+                                            setShowWarningModal(true);
+                                        }
+                                    }}
+                                >
+                                    <option value="">
+                                        {loadingHours
+                                            ? 'Cargando horas...'
+                                            : !formData.fecha || !formData.clinica
+                                                ? 'Selecciona una hora'
+                                                : availableHours.length === 0
+                                                    ? 'Sin disponibilidad'
+                                                    : 'Selecciona una hora'}
                                     </option>
-                                ))}
-                            </select>
+                                    {availableHours.map(hora => (
+                                        <option key={hora} value={hora}>
+                                            {hora}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             {errors.hora && (
-                                <span className="error-message">⚠ {errors.hora}</span>
+                                <span className="apt-error-msg">⚠ {errors.hora}</span>
                             )}
                             {formData.fecha && formData.clinica && !loadingHours && availableHours.length === 0 && (
-                                <span className="info-message" style={{ color: '#0066cc', fontSize: '0.9rem', marginTop: '0.25rem', display: 'block' }}>
-                                    ℹ️ Todas las horas están ocupadas para esta fecha. Por favor, selecciona otro día.
+                                <span className="apt-info-msg">
+                                    ℹ️ No hay horas libres para este día.
                                 </span>
                             )}
                         </div>
@@ -464,12 +477,18 @@ function AppointmentForm({ userData }) {
                 </div>
 
                 {/* Notas Adicionales */}
-                <div className="form-section">
-                    <h3>Notas Adicionales</h3>
+                <div className="apt-section">
+                    <div className="apt-section-header">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="apt-section-icon">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <h3>Notas Adicionales</h3>
+                    </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="notas">
+                    <div className="apt-row">
+                        <div className="apt-group">
+                            <label htmlFor="notas" className="apt-label">
                                 Información adicional (opcional)
                             </label>
                             <textarea
@@ -477,7 +496,8 @@ function AppointmentForm({ userData }) {
                                 name="notas"
                                 value={formData.notas}
                                 onChange={handleChange}
-                                placeholder="Información adicional que consideres importante..."
+                                placeholder="Comparte información relevante con el médico..."
+                                className="apt-textarea"
                                 rows="4"
                             />
                         </div>
@@ -486,54 +506,53 @@ function AppointmentForm({ userData }) {
 
                 {/* Display general errors */}
                 {errors.general && (
-                    <div className="error-message" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#fee', borderRadius: '8px', color: '#c00' }}>
-                        ⚠ {errors.general}
+                    <div className="apt-general-error">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '20px', height: '20px' }}>
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                            <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        <span>{errors.general}</span>
                     </div>
                 )}
 
                 <button
                     type="submit"
-                    className="btn btn-primary btn-submit"
+                    className="apt-submit-btn"
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? (
-                        <>
-                            <span className="spinner"></span>
-                            Agendando...
-                        </>
-                    ) : isEditMode ? (
-                        <>
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                <polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                <polyline points="7 3 7 8 15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            Guardar Cambios
-                        </>
+                        <div className="apt-spinner-box">
+                            <span className="apt-spinner"></span>
+                            <span>Procesando...</span>
+                        </div>
                     ) : (
-                        <>
+                        <div className="apt-btn-content">
+                            <span>{isEditMode ? 'Guardar Cambios' : 'Agendar Cita Ahora'}</span>
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            Agendar Cita
-                        </>
+                        </div>
                     )}
                 </button>
             </form>
 
             {/* Warning Modal */}
             {showWarningModal && (
-                <div className="modal-overlay" onClick={() => setShowWarningModal(false)}>
-                    <div className="modal-content error-modal" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="modal-title">Atención</h3>
-                        <p className="modal-message">
-                            {warningMessage}
-                        </p>
-                        <div className="modal-actions">
-                            <button className="modal-btn modal-btn-confirm" onClick={() => setShowWarningModal(false)}>
-                                Entendido
-                            </button>
+                <div className="apt-modal-overlay" onClick={() => setShowWarningModal(false)}>
+                    <div className="apt-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="apt-modal-icon-box">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="2" />
+                                <line x1="12" y1="8" x2="12" y2="12" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
                         </div>
+                        <h3>Atención</h3>
+                        <p>{warningMessage}</p>
+                        <button className="apt-modal-btn" onClick={() => setShowWarningModal(false)}>
+                            Entendido
+                        </button>
                     </div>
                 </div>
             )}
