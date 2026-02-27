@@ -1,39 +1,84 @@
-import React, { useState } from 'react';
+import { useReducer } from 'react';
 import { signInStaff, createStaffProfile } from '../services/staffService';
 import './StaffLogin.css';
 
-const StaffLogin = ({ onLogin }) => {
-    const [mode, setMode] = useState('login'); // 'login' or 'register'
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
-    const [fieldErrors, setFieldErrors] = useState({});
-
+const initialState = {
+    mode: 'login', // 'login' or 'register'
+    loading: false,
+    error: '',
+    successMessage: '',
+    fieldErrors: {},
     // Login form fields
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-
+    email: '',
+    password: '',
     // Registration form fields
-    const [regEmail, setRegEmail] = useState('');
-    const [regPassword, setRegPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [nombres, setNombres] = useState('');
-    const [apellidos, setApellidos] = useState('');
-    const [cargo, setCargo] = useState('');
-    const [role, setRole] = useState('doctor');
-    const [telefono, setTelefono] = useState('');
+    regEmail: '',
+    regPassword: '',
+    confirmPassword: '',
+    nombres: '',
+    apellidos: '',
+    cargo: '',
+    role: 'doctor',
+    telefono: ''
+};
 
-    const validateField = (name, value) => {
-        if (value) {
-            setFieldErrors(prev => ({ ...prev, [name]: '' }));
-        }
+function reducer(state, action) {
+    switch (action.type) {
+        case 'SET_FIELD':
+            return {
+                ...state,
+                [action.field]: action.value,
+                fieldErrors: {
+                    ...state.fieldErrors,
+                    [action.field]: ''
+                }
+            };
+        case 'SET_MODE':
+            return {
+                ...initialState,
+                mode: action.payload
+            };
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload };
+        case 'SET_ERROR':
+            return { ...state, error: action.payload, loading: false };
+        case 'SET_SUCCESS':
+            return { ...state, successMessage: action.payload, loading: false };
+        case 'SET_FIELD_ERRORS':
+            return { ...state, fieldErrors: action.payload, loading: false };
+        case 'CLEAR_REG_FORM':
+            return {
+                ...state,
+                regEmail: '',
+                regPassword: '',
+                confirmPassword: '',
+                nombres: '',
+                apellidos: '',
+                cargo: '',
+                role: 'doctor',
+                telefono: ''
+            };
+        default:
+            return state;
+    }
+}
+
+const StaffLogin = ({ onLogin }) => {
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const {
+        mode, loading, error, successMessage, fieldErrors,
+        email, password, regEmail, regPassword, confirmPassword,
+        nombres, apellidos, cargo, role, telefono
+    } = state;
+
+    const handleFieldChange = (field, value) => {
+        dispatch({ type: 'SET_FIELD', field, value });
     };
 
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-        setFieldErrors({});
-        setLoading(true);
+        dispatch({ type: 'SET_FIELD_ERRORS', payload: {} });
+        dispatch({ type: 'SET_LOADING', payload: true });
 
         // Validate fields
         const errors = {};
@@ -41,8 +86,7 @@ const StaffLogin = ({ onLogin }) => {
         if (!password) errors.password = 'Ingresa tu contraseña';
 
         if (Object.keys(errors).length > 0) {
-            setFieldErrors(errors);
-            setLoading(false);
+            dispatch({ type: 'SET_FIELD_ERRORS', payload: errors });
             return;
         }
 
@@ -52,37 +96,36 @@ const StaffLogin = ({ onLogin }) => {
 
             if (signInError) {
                 // Handle specific error codes
+                let errorMessage = 'Error al iniciar sesión. Por favor, intenta de nuevo.';
                 if (signInError.code === 'auth/not-staff') {
-                    setError('Esta cuenta no tiene permisos de personal.');
+                    errorMessage = 'Esta cuenta no tiene permisos de personal.';
+                } else if (signInError.code === 'auth/account-inactive') {
+                    errorMessage = signInError.message || 'Tu cuenta ha sido desactivada. Por favor contacta al administrador.';
                 } else if (signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/wrong-password' || signInError.code === 'auth/user-not-found') {
-                    setError('Credenciales incorrectas. Verifica tu correo y contraseña.');
+                    errorMessage = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
                 } else if (signInError.code === 'auth/too-many-requests') {
-                    setError('Demasiados intentos fallidos. Por favor, intenta más tarde.');
-                } else {
-                    setError('Error al iniciar sesión. Por favor, intenta de nuevo.');
+                    errorMessage = 'Demasiados intentos fallidos. Por favor, intenta más tarde.';
                 }
-                setLoading(false);
+                dispatch({ type: 'SET_ERROR', payload: errorMessage });
                 return;
             }
 
             if (user && staffProfile) {
-                // Successful login - call parent's onLogin callback with user and staffProfile
+                // Successful login - call parent's onLogin callback
                 onLogin(user, staffProfile);
             }
         } catch (err) {
             console.error('Login error:', err);
-            setError('Error inesperado. Por favor, intenta de nuevo.');
+            dispatch({ type: 'SET_ERROR', payload: 'Error inesperado. Por favor, intenta de nuevo.' });
         } finally {
-            setLoading(false);
+            dispatch({ type: 'SET_LOADING', payload: false });
         }
     };
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-        setFieldErrors({});
-        setSuccessMessage('');
-        setLoading(true);
+        dispatch({ type: 'SET_FIELD_ERRORS', payload: {} });
+        dispatch({ type: 'SET_LOADING', payload: true });
 
         // Validate fields
         const errors = {};
@@ -101,8 +144,7 @@ const StaffLogin = ({ onLogin }) => {
         if (!telefono) errors.telefono = 'Ingresa el teléfono';
 
         if (Object.keys(errors).length > 0) {
-            setFieldErrors(errors);
-            setLoading(false);
+            dispatch({ type: 'SET_FIELD_ERRORS', payload: errors });
             return;
         }
 
@@ -122,44 +164,35 @@ const StaffLogin = ({ onLogin }) => {
 
             if (createError) {
                 // Handle specific error codes
+                let errorMessage = 'Error al crear la cuenta. Por favor, intenta de nuevo.';
                 if (createError.code === 'auth/email-already-in-use') {
-                    setError('Este correo electrónico ya está registrado.');
+                    errorMessage = 'Este correo electrónico ya está registrado.';
                 } else if (createError.code === 'auth/invalid-email') {
-                    setError('El correo electrónico no es válido.');
+                    errorMessage = 'El correo electrónico no es válido.';
                 } else if (createError.code === 'auth/weak-password') {
-                    setError('La contraseña es demasiado débil.');
-                } else {
-                    setError('Error al crear la cuenta. Por favor, intenta de nuevo.');
+                    errorMessage = 'La contraseña es demasiado débil.';
                 }
-                setLoading(false);
+                dispatch({ type: 'SET_ERROR', payload: errorMessage });
                 return;
             }
 
             if (success) {
                 // Show success message
-                setSuccessMessage('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.');
+                dispatch({ type: 'SET_SUCCESS', payload: '¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.' });
 
                 // Clear registration form
-                setRegEmail('');
-                setRegPassword('');
-                setConfirmPassword('');
-                setNombres('');
-                setApellidos('');
-                setCargo('');
-                setRole('doctor');
-                setTelefono('');
+                dispatch({ type: 'CLEAR_REG_FORM' });
 
                 // Switch to login mode after 2 seconds
                 setTimeout(() => {
-                    setMode('login');
-                    setSuccessMessage('');
+                    dispatch({ type: 'SET_MODE', payload: 'login' });
                 }, 2000);
             }
         } catch (err) {
             console.error('Registration error:', err);
-            setError('Error inesperado. Por favor, intenta de nuevo.');
+            dispatch({ type: 'SET_ERROR', payload: 'Error inesperado. Por favor, intenta de nuevo.' });
         } finally {
-            setLoading(false);
+            dispatch({ type: 'SET_LOADING', payload: false });
         }
     };
 
@@ -179,30 +212,20 @@ const StaffLogin = ({ onLogin }) => {
                     <button
                         type="button"
                         className={`mode-button ${mode === 'login' ? 'active' : ''}`}
-                        onClick={() => {
-                            setMode('login');
-                            setError('');
-                            setSuccessMessage('');
-                            setFieldErrors({});
-                        }}
+                        onClick={() => dispatch({ type: 'SET_MODE', payload: 'login' })}
                     >
                         Iniciar Sesión
                     </button>
                     <button
                         type="button"
                         className={`mode-button ${mode === 'register' ? 'active' : ''}`}
-                        onClick={() => {
-                            setMode('register');
-                            setError('');
-                            setSuccessMessage('');
-                            setFieldErrors({});
-                        }}
+                        onClick={() => dispatch({ type: 'SET_MODE', payload: 'register' })}
                     >
                         Registrar Personal
                     </button>
                 </div>
 
-                {/* Success Message */}
+                {/* Success Message Banner */}
                 {successMessage && (
                     <div className="success-message-banner">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -222,7 +245,7 @@ const StaffLogin = ({ onLogin }) => {
                                 type="email"
                                 id="email"
                                 value={email}
-                                onChange={(e) => { setEmail(e.target.value); validateField('email', e.target.value); }}
+                                onChange={(e) => handleFieldChange('email', e.target.value)}
                                 placeholder="ejemplo@correo.com"
                                 className={fieldErrors.email ? 'input-error' : ''}
                                 disabled={loading}
@@ -237,7 +260,7 @@ const StaffLogin = ({ onLogin }) => {
                                 type="password"
                                 id="password"
                                 value={password}
-                                onChange={(e) => { setPassword(e.target.value); validateField('password', e.target.value); }}
+                                onChange={(e) => handleFieldChange('password', e.target.value)}
                                 placeholder="••••••••"
                                 className={fieldErrors.password ? 'input-error' : ''}
                                 disabled={loading}
@@ -271,7 +294,7 @@ const StaffLogin = ({ onLogin }) => {
                                     type="text"
                                     id="nombres"
                                     value={nombres}
-                                    onChange={(e) => { setNombres(e.target.value); validateField('nombres', e.target.value); }}
+                                    onChange={(e) => handleFieldChange('nombres', e.target.value)}
                                     placeholder="Juan Carlos"
                                     className={fieldErrors.nombres ? 'input-error' : ''}
                                     disabled={loading}
@@ -286,7 +309,7 @@ const StaffLogin = ({ onLogin }) => {
                                     type="text"
                                     id="apellidos"
                                     value={apellidos}
-                                    onChange={(e) => { setApellidos(e.target.value); validateField('apellidos', e.target.value); }}
+                                    onChange={(e) => handleFieldChange('apellidos', e.target.value)}
                                     placeholder="García López"
                                     className={fieldErrors.apellidos ? 'input-error' : ''}
                                     disabled={loading}
@@ -302,7 +325,7 @@ const StaffLogin = ({ onLogin }) => {
                                 type="email"
                                 id="regEmail"
                                 value={regEmail}
-                                onChange={(e) => { setRegEmail(e.target.value); validateField('regEmail', e.target.value); }}
+                                onChange={(e) => handleFieldChange('regEmail', e.target.value)}
                                 placeholder="ejemplo@correo.com"
                                 className={fieldErrors.regEmail ? 'input-error' : ''}
                                 disabled={loading}
@@ -318,7 +341,7 @@ const StaffLogin = ({ onLogin }) => {
                                     type="password"
                                     id="regPassword"
                                     value={regPassword}
-                                    onChange={(e) => { setRegPassword(e.target.value); validateField('regPassword', e.target.value); }}
+                                    onChange={(e) => handleFieldChange('regPassword', e.target.value)}
                                     placeholder="••••••••"
                                     className={fieldErrors.regPassword ? 'input-error' : ''}
                                     disabled={loading}
@@ -333,7 +356,7 @@ const StaffLogin = ({ onLogin }) => {
                                     type="password"
                                     id="confirmPassword"
                                     value={confirmPassword}
-                                    onChange={(e) => { setConfirmPassword(e.target.value); validateField('confirmPassword', e.target.value); }}
+                                    onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                                     placeholder="••••••••"
                                     className={fieldErrors.confirmPassword ? 'input-error' : ''}
                                     disabled={loading}
@@ -350,7 +373,7 @@ const StaffLogin = ({ onLogin }) => {
                                     type="text"
                                     id="cargo"
                                     value={cargo}
-                                    onChange={(e) => { setCargo(e.target.value); validateField('cargo', e.target.value); }}
+                                    onChange={(e) => handleFieldChange('cargo', e.target.value)}
                                     placeholder="Ej: Odontólogo, Asistente"
                                     className={fieldErrors.cargo ? 'input-error' : ''}
                                     disabled={loading}
@@ -365,7 +388,7 @@ const StaffLogin = ({ onLogin }) => {
                                     type="tel"
                                     id="telefono"
                                     value={telefono}
-                                    onChange={(e) => { setTelefono(e.target.value); validateField('telefono', e.target.value); }}
+                                    onChange={(e) => handleFieldChange('telefono', e.target.value)}
                                     placeholder="7777-7777"
                                     className={fieldErrors.telefono ? 'input-error' : ''}
                                     disabled={loading}
@@ -380,7 +403,7 @@ const StaffLogin = ({ onLogin }) => {
                             <select
                                 id="role"
                                 value={role}
-                                onChange={(e) => setRole(e.target.value)}
+                                onChange={(e) => handleFieldChange('role', e.target.value)}
                                 className="form-select"
                                 disabled={loading}
                             >

@@ -18,6 +18,7 @@
     margin: 0 auto;
     padding: 2rem;
     color: var(--text-main);
+    animation: fadeIn 0.5s ease-out;
 }
 
 /* Header */
@@ -448,10 +449,11 @@
     .reports-table td {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         padding: 0.8rem 0;
         border-bottom: 1px dashed var(--border);
         min-height: 45px;
+        gap: 1rem;
     }
 
     .reports-table td:last-child {
@@ -465,6 +467,8 @@
         color: var(--text-muted);
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        flex-shrink: 0;
+        margin-top: 0.2rem;
     }
 
     /* Style for values in mobile */
@@ -476,6 +480,7 @@
 
     .reports-patient-info {
         align-items: flex-end;
+        text-align: right;
     }
 
     .reports-export-section {
@@ -535,4 +540,16 @@
 .reports-clear-filters-btn svg {
     width: 20px !important;
     height: 20px !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

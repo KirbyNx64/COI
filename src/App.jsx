@@ -19,6 +19,8 @@ import StaffDashboard from './pages/StaffDashboard';
 import PatientsManagement from './pages/PatientsManagement';
 import StaffAppointments from './pages/StaffAppointments';
 import StaffReports from './pages/StaffReports';
+import StaffProfile from './pages/StaffProfile';
+import StaffSettings from './pages/StaffSettings';
 import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
@@ -50,7 +52,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               !isAuthenticated ? (
                 <StaffLogin onLogin={handleLogin} />
               ) : (
-                <Navigate to={isStaff ? "/staff/dashboard" : "/"} replace />
+                <Navigate to={isStaff ? (userType === 'admin' ? "/staff/dashboard" : "/staff/appointments") : "/"} replace />
               )
             }
           />
@@ -64,19 +66,23 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               ) : userType === 'patient' ? (
                 <Home userData={userData} />
               ) : (
-                <Navigate to="/staff/dashboard" replace />
+                <Navigate to={userType === 'admin' ? "/staff/dashboard" : "/staff/appointments"} replace />
               )
             }
           />
 
-          {/* Staff Dashboard - only accessible for staff */}
+          {/* Staff Dashboard - only accessible for staff admins */}
           <Route
             path="/staff/dashboard"
             element={
               isAuthenticated && isStaff ? (
-                <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
-                  <StaffDashboard userType={userType} userData={userData} />
-                </StaffLayout>
+                userType === 'admin' ? (
+                  <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
+                    <StaffDashboard userType={userType} userData={userData} />
+                  </StaffLayout>
+                ) : (
+                  <Navigate to="/staff/appointments" replace />
+                )
               ) : (
                 <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
               )
@@ -97,13 +103,27 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
             }
           />
 
+          {/* Staff Profile - only accessible for staff */}
+          <Route
+            path="/staff/profile"
+            element={
+              isAuthenticated && isStaff ? (
+                <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
+                  <StaffProfile userData={userData} />
+                </StaffLayout>
+              ) : (
+                <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
+              )
+            }
+          />
+
           {/* Staff Appointments - only accessible for staff */}
           <Route
             path="/staff/appointments"
             element={
               isAuthenticated && isStaff ? (
                 <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
-                  <StaffAppointments />
+                  <StaffAppointments userType={userType} userData={userData} />
                 </StaffLayout>
               ) : (
                 <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
@@ -118,6 +138,20 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               isAuthenticated && isStaff ? (
                 <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
                   <StaffReports />
+                </StaffLayout>
+              ) : (
+                <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
+              )
+            }
+          />
+
+          {/* Staff Settings - only accessible for staff */}
+          <Route
+            path="/staff/settings"
+            element={
+              isAuthenticated && isStaff ? (
+                <StaffLayout userType={userType} userData={userData} onLogout={handleLogout}>
+                  <StaffSettings />
                 </StaffLayout>
               ) : (
                 <Navigate to={isAuthenticated ? "/" : "/staff/login"} replace />
@@ -146,7 +180,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
             element={
               <Navigate to={
                 !isAuthenticated ? "/" :
-                  isStaff ? "/staff/dashboard" :
+                  isStaff ? (userType === 'admin' ? "/staff/dashboard" : "/staff/appointments") :
                     "/"
               } replace />
             }
@@ -184,6 +218,18 @@ function App() {
         let staffResult = await getStaffProfile(user.uid);
 
         if (staffResult.profile) {
+          // Check if staff account is inactive
+          if (staffResult.profile.status === 'inactive') {
+            console.log('Account is inactive, signing out');
+            const { signOut } = await import('./services/authService');
+            await signOut();
+            setUserData(null);
+            setUserType(null);
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            return;
+          }
+
           // User is staff member
           console.log('Staff profile loaded:', staffResult.profile);
           setUserData(staffResult.profile);
@@ -211,6 +257,18 @@ function App() {
         }
 
         if (profile) {
+          // Check if patient account is inactive
+          if (profile.status === 'inactive') {
+            console.log('Patient account is inactive, signing out');
+            const { signOut } = await import('./services/authService');
+            await signOut();
+            setUserData(null);
+            setUserType(null);
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            return;
+          }
+
           console.log('Patient profile loaded:', profile);
           setUserData(profile);
           setUserType('patient');

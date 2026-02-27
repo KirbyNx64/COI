@@ -1,35 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useReducer } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebaseConfig';
 import { subscribeToUserAppointments, updateAppointmentStatus } from '../services/appointmentService';
 import ConfirmationModal from '../components/ConfirmationModal';
 import './AppointmentsList.css';
 
+const initialState = {
+    appointments: [],
+    expandedId: null,
+    isModalOpen: false,
+    appointmentToCancel: null,
+    isLoading: true
+};
+
+function reducer(state, action) {
+    switch (action.type) {
+        case 'SET_APPOINTMENTS':
+            return { ...state, appointments: action.payload, isLoading: false };
+        case 'TOGGLE_EXPAND':
+            return { ...state, expandedId: state.expandedId === action.payload ? null : action.payload };
+        case 'OPEN_CANCEL_MODAL':
+            return { ...state, isModalOpen: true, appointmentToCancel: action.payload };
+        case 'CLOSE_CANCEL_MODAL':
+            return { ...state, isModalOpen: false, appointmentToCancel: null };
+        case 'SET_LOADING':
+            return { ...state, isLoading: action.payload };
+        default:
+            return state;
+    }
+}
+
 function AppointmentsList() {
     const navigate = useNavigate();
-    const [appointments, setAppointments] = useState([]);
-    const [expandedId, setExpandedId] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [appointmentToCancel, setAppointmentToCancel] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const { appointments, expandedId, isModalOpen, appointmentToCancel, isLoading } = state;
 
     useEffect(() => {
         const user = auth.currentUser;
         if (!user) {
-            setIsLoading(false);
+            dispatch({ type: 'SET_LOADING', payload: false });
             return;
         }
 
         // Subscribe to real-time updates from Firebase
-        const unsubscribe = subscribeToUserAppointments(user.uid, (appointments) => {
+        const unsubscribe = subscribeToUserAppointments(user.uid, (appointmentsData) => {
             // Sort by date descending (most recent first)
-            const sortedAppointments = appointments.sort((a, b) => {
+            const sortedAppointments = [...appointmentsData].sort((a, b) => {
                 const dateA = new Date(`${a.date} ${a.time}`);
                 const dateB = new Date(`${b.date} ${b.time}`);
                 return dateB - dateA;
             });
-            setAppointments(sortedAppointments);
-            setIsLoading(false);
+            dispatch({ type: 'SET_APPOINTMENTS', payload: sortedAppointments });
         });
 
         // Cleanup subscription on unmount
@@ -58,12 +79,11 @@ function AppointmentsList() {
     };
 
     const toggleExpand = (id) => {
-        setExpandedId(expandedId === id ? null : id);
+        dispatch({ type: 'TOGGLE_EXPAND', payload: id });
     };
 
     const handleCancelAppointment = (appointmentId) => {
-        setAppointmentToCancel(appointmentId);
-        setIsModalOpen(true);
+        dispatch({ type: 'OPEN_CANCEL_MODAL', payload: appointmentId });
     };
 
     const confirmCancellation = async () => {
@@ -79,13 +99,11 @@ function AppointmentsList() {
             }
 
             // Close modal and clear state
-            setIsModalOpen(false);
-            setAppointmentToCancel(null);
+            dispatch({ type: 'CLOSE_CANCEL_MODAL' });
         } catch (err) {
             console.error('Unexpected error:', err);
             alert('Ocurrió un error inesperado. Por favor, intenta de nuevo.');
-            setIsModalOpen(false);
-            setAppointmentToCancel(null);
+            dispatch({ type: 'CLOSE_CANCEL_MODAL' });
         }
     };
 
@@ -108,7 +126,11 @@ function AppointmentsList() {
                     <p className="page-subtitle">Todas tus citas programadas</p>
                 </div>
 
-                {appointments.length > 0 ? (
+                {isLoading ? (
+                    <div className="loading-state">
+                        <p>Cargando tus citas...</p>
+                    </div>
+                ) : appointments.length > 0 ? (
                     <div className="appointments-list">
                         {appointments.map((appointment) => (
                             <div
@@ -270,8 +292,7 @@ function AppointmentsList() {
             <ConfirmationModal
                 isOpen={isModalOpen}
                 onClose={() => {
-                    setIsModalOpen(false);
-                    setAppointmentToCancel(null);
+                    dispatch({ type: 'CLOSE_CANCEL_MODAL' });
                 }}
                 onConfirm={confirmCancellation}
                 title="Cancelar Cita"
@@ -282,3 +303,4 @@ function AppointmentsList() {
 }
 
 export default AppointmentsList;
+

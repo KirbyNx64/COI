@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getAllAppointments, updateAppointmentStatus, updateAppointment } from '../services/appointmentService';
-import { getPatientById } from '../services/staffService';
+import { getPatientById, getAllStaffMembers } from '../services/staffService';
 import { createNotification } from '../services/notificationService';
 import EditAppointmentModal from '../components/EditAppointmentModal';
 import './StaffAppointments.css';
 
-const StaffAppointments = () => {
+const StaffAppointments = ({ userType, userData }) => {
     const [appointments, setAppointments] = useState([]);
     const [filteredAppointments, setFilteredAppointments] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +24,11 @@ const StaffAppointments = () => {
     const [diagnostico, setDiagnostico] = useState('');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
 
+    // Assign Doctor State
+    const [staffList, setStaffList] = useState([]);
+    const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+    const [showAssignDoctor, setShowAssignDoctor] = useState(false);
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -40,7 +45,17 @@ const StaffAppointments = () => {
 
     useEffect(() => {
         loadAppointments();
+        loadStaff();
     }, []);
+
+    const loadStaff = async () => {
+        setIsLoadingStaff(true);
+        const { staff, error } = await getAllStaffMembers();
+        if (!error && staff) {
+            setStaffList(staff);
+        }
+        setIsLoadingStaff(false);
+    };
 
     useEffect(() => {
         applyFilters();
@@ -70,7 +85,12 @@ const StaffAppointments = () => {
             setError('Error al cargar las citas. Verifica los permisos de Firestore.');
             console.error('Error loading appointments:', loadError);
         } else {
-            setAppointments(appointmentsData);
+            if (userType !== 'admin' && userData) {
+                const doctorId = userData.uid || userData.id;
+                setAppointments(appointmentsData.filter(appt => appt.doctorId === doctorId));
+            } else {
+                setAppointments(appointmentsData);
+            }
         }
 
         setIsLoading(false);
@@ -79,22 +99,30 @@ const StaffAppointments = () => {
     const applyFilters = () => {
         let filtered = [...appointments];
 
+        // Helper for local date formatting e.g., 'YYYY-MM-DD'
+        const getLocalDateString = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         // Date filter
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = getLocalDateString(today);
 
         if (dateFilter === 'today') {
             filtered = filtered.filter(apt => apt.date === todayStr);
         } else if (dateFilter === 'yesterday') {
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayStr = getLocalDateString(yesterday);
             filtered = filtered.filter(apt => apt.date === yesterdayStr);
         } else if (dateFilter === 'tomorrow') {
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            const tomorrowStr = getLocalDateString(tomorrow);
             filtered = filtered.filter(apt => apt.date === tomorrowStr);
         } else if (dateFilter === 'week') {
             const weekFromNow = new Date(today);
@@ -140,6 +168,7 @@ const StaffAppointments = () => {
     const handleViewDetails = async (appointment) => {
         setSelectedAppointment(appointment);
         setShowDetailModal(true);
+        setShowAssignDoctor(false);
         setNotasMedico(appointment.notasMedico || '');
         setRecetaMedica(appointment.recetaMedica || '');
         setDiagnostico(appointment.diagnostico || '');
@@ -248,6 +277,28 @@ const StaffAppointments = () => {
         setShowDetailModal(true);
     };
 
+    const handleAssignDoctor = () => {
+        setShowAssignDoctor(true);
+    };
+
+    const handleSaveDoctor = async (doctorId, doctorName) => {
+        setIsUpdatingStatus(true);
+        const { error } = await updateAppointment(selectedAppointment.id, {
+            doctorId,
+            doctorName
+        });
+
+        if (error) {
+            showToastMessage('Error al asignar el médico', 'error');
+        } else {
+            showToastMessage('Médico asignado correctamente', 'success');
+            setSelectedAppointment({ ...selectedAppointment, doctorId, doctorName });
+            setShowAssignDoctor(false);
+            await loadAppointments();
+        }
+        setIsUpdatingStatus(false);
+    };
+
     const getStatusLabel = (status) => {
         const labels = {
             'programada': 'Programada',
@@ -271,13 +322,17 @@ const StaffAppointments = () => {
 
     const isToday = (dateStr) => {
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStr = today.toISOString().split('T')[0];
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
         return dateStr === todayStr;
     };
 
     const formatDate = (dateStr) => {
-        const date = new Date(dateStr);
+        if (!dateStr) return '';
+        const [year, month, day] = dateStr.split('-');
+        const date = new Date(year, month - 1, day);
         return date.toLocaleDateString('es-SV', {
             weekday: 'long',
             year: 'numeric',
@@ -433,21 +488,21 @@ const StaffAppointments = () => {
                     </table>
 
                     {totalPages > 1 && (
-                        <div className="pagination">
+                        <div className="apt-pagination">
                             <button
                                 onClick={() => paginate(currentPage - 1)}
                                 disabled={currentPage === 1}
-                                className="pagination-btn"
+                                className="apt-pagination-btn"
                             >
                                 &laquo; Anterior
                             </button>
 
-                            <div className="pagination-numbers">
+                            <div className="apt-pagination-numbers">
                                 {[...Array(totalPages)].map((_, index) => (
                                     <button
                                         key={index + 1}
                                         onClick={() => paginate(index + 1)}
-                                        className={`pagination-number ${currentPage === index + 1 ? 'active' : ''}`}
+                                        className={`apt-pagination-number ${currentPage === index + 1 ? 'active' : ''}`}
                                     >
                                         {index + 1}
                                     </button>
@@ -457,7 +512,7 @@ const StaffAppointments = () => {
                             <button
                                 onClick={() => paginate(currentPage + 1)}
                                 disabled={currentPage === totalPages}
-                                className="pagination-btn"
+                                className="apt-pagination-btn"
                             >
                                 Siguiente &raquo;
                             </button>
@@ -498,6 +553,10 @@ const StaffAppointments = () => {
                                         <span className={`status-badge status-${selectedAppointment.status}`}>
                                             {getStatusLabel(selectedAppointment.status)}
                                         </span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Médico Asignado:</label>
+                                        <span style={{ fontWeight: 600, color: '#2c5282' }}>{selectedAppointment.doctorName || 'Sin asignar'}</span>
                                     </div>
                                     <div className="detail-item full-width">
                                         <label>Motivo:</label>
@@ -642,9 +701,21 @@ const StaffAppointments = () => {
                                     </button>
                                 </div>
                             </div>
+
                         </div>
 
                         <div className="modal-actions">
+                            {userType === 'admin' && (
+                                <button className="assign-button" onClick={handleAssignDoctor}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="8.5" cy="7" r="4"></circle>
+                                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                                    </svg>
+                                    Asignar Médico
+                                </button>
+                            )}
                             <button className="edit-button" onClick={handleEditAppointment}>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -654,6 +725,58 @@ const StaffAppointments = () => {
                             </button>
                             <button className="close-button" onClick={() => setShowDetailModal(false)}>
                                 Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Assign Doctor Modal */}
+            {showAssignDoctor && selectedAppointment && userType === 'admin' && (
+                <div className="modal-overlay" style={{ zIndex: 1050 }} onClick={() => setShowAssignDoctor(false)}>
+                    <div className="modal-content appointment-detail-modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Asignar Médico</h2>
+                            <button className="modal-close" onClick={() => setShowAssignDoctor(false)}>
+                                ×
+                            </button>
+                        </div>
+                        <div className="appointment-detail-content">
+                            {isLoadingStaff ? (
+                                <div style={{ padding: '2rem', textAlign: 'center' }}>Cargando médicos...</div>
+                            ) : (
+                                <div className="doctor-selection-grid">
+                                    {staffList.map(doctor => (
+                                        <div
+                                            key={doctor.uid}
+                                            className={`doctor-selection-card ${selectedAppointment.doctorId === doctor.uid ? 'active' : ''}`}
+                                            onClick={() => handleSaveDoctor(doctor.uid, `${doctor.nombres} ${doctor.apellidos}`)}
+                                        >
+                                            <div className="doctor-avatar-circle">
+                                                {doctor.photoURL ? (
+                                                    <img src={doctor.photoURL} alt={doctor.nombres} />
+                                                ) : (
+                                                    <span>{doctor.nombres.charAt(0)}</span>
+                                                )}
+                                            </div>
+                                            <div className="doctor-info-text">
+                                                <span className="doctor-name">{doctor.nombres} {doctor.apellidos}</span>
+                                                {doctor.especialidad && <span className="doctor-specialty">{doctor.especialidad}</span>}
+                                            </div>
+                                            {selectedAppointment.doctorId === doctor.uid && (
+                                                <span className="assigned-badge">Actual</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {staffList.length === 0 && (
+                                        <p className="no-doctors" style={{ padding: '2rem', textAlign: 'center' }}>No hay médicos disponibles.</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-actions">
+                            <button className="close-button" onClick={() => setShowAssignDoctor(false)}>
+                                Cancelar
                             </button>
                         </div>
                     </div>

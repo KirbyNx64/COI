@@ -1,77 +1,72 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function para verificar si el usuario es staff
+    
+    // --- FUNCIONES DE AYUDA (Helpers) ---
+    
+    // Verifica si el usuario autenticado pertenece a la colección de personal
     function isStaff() {
-      return exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+      return request.auth != null && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
     }
     
-    // Reglas para usuarios (pacientes)
+    // Verifica si el usuario es específicamente Administrador
+    function isAdmin() {
+      return isStaff() && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Verifica si el usuario es dueño del documento
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- REGLAS POR COLECCIÓN ---
+
+    // Colección de Pacientes (Usuarios)
     match /users/{userId} {
-      // Pacientes pueden leer/actualizar su propio perfil
-      // Staff puede leer/actualizar todos los perfiles
-      allow read: if request.auth != null && 
-        (request.auth.uid == userId || isStaff());
-      
-      // Permitir crear si:
-      // 1. El usuario crea su propio perfil, O
-      // 2. El usuario es staff (puede crear perfiles para pacientes)
-      allow create: if request.auth != null && 
-        (request.auth.uid == userId || isStaff());
-      
-      allow update: if request.auth != null && 
-        (request.auth.uid == userId || isStaff());
-      allow delete: if false; // No permitir eliminación
+      // Lectura y Escritura: El propio paciente o cualquier miembro del staff
+      allow read, create, update: if isOwner(userId) || isStaff();
+      allow delete: if isAdmin(); // Solo el administrador puede borrar pacientes
     }
     
-    // Reglas para personal (staff)
+    // Colección de Personal (Staff)
     match /staff/{staffId} {
-      // Permitir crear perfil de staff cuando el usuario está autenticado
-      // (el primer admin se auto-crea, los siguientes son creados por admins)
+      // El primer acceso permite creación, luego controlado por la app
       allow create: if request.auth != null;
       
-      // Permitir leer solo su propio perfil
-      allow read: if request.auth != null && request.auth.uid == staffId;
+      // PERMISOS DE LECTURA:
+      // Un médico puede ver su propio perfil.
+      // Un miembro del staff puede ver la lista de sus colegas (necesario para Configuración).
+      allow read: if isOwner(staffId) || isStaff();
       
-      // Permitir actualizar solo su propio perfil
-      allow update: if request.auth != null && request.auth.uid == staffId;
+      // PERMISOS DE ACTUALIZACIÓN:
+      // Solo el dueño del perfil o un Administrador pueden hacer cambios
+      allow update: if isOwner(staffId) || isAdmin();
       
-      // No permitir eliminación
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
     
-    // Reglas para citas
+    // Colección de Citas
     match /appointments/{appointmentId} {
-      // Permitir crear citas si:
-      // 1. El usuario crea una cita para sí mismo, O
-      // 2. El usuario es staff (puede crear citas para cualquier paciente)
+      // Creación: El paciente para sí mismo o el staff para cualquier paciente
       allow create: if request.auth != null && 
         (request.resource.data.userId == request.auth.uid || isStaff());
       
-      // Permitir leer, actualizar y eliminar las citas propias
-      // Staff puede leer/actualizar/eliminar todas las citas
-      allow read, update, delete: if request.auth != null && 
-        (resource.data.userId == request.auth.uid || isStaff());
+      // Gestión: Dueño de la cita o miembros del staff
+      allow read, update, delete: if isOwner(resource.data.userId) || isStaff();
       
-      // Permitir leer citas para verificar disponibilidad
-      // Solo cuando se consulta por fecha Y clínica Y estado
-      // Esto permite contar cuántas citas hay en una hora específica
+      // Permitir lectura general para validación de disponibilidad de horarios
       allow read: if request.auth != null;
     }
-
-    // Reglas para notificaciones
+    
+    // Colección de Notificaciones
     match /notifications/{notificationId} {
-      // Staff puede crear notificaciones
-      allow create: if request.auth != null && isStaff();
+      // Solo el staff crea notificaciones
+      allow create: if isStaff();
       
-      // Staff puede leer notificaciones (para verificar)
-      allow read: if request.auth != null && isStaff();
-
-      // Pacientes pueden leer sus propias notificaciones
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Lectura/Actualización: El personal médico o el paciente al que va dirigida
+      allow read, update: if isStaff() || (request.auth != null && resource.data.userId == request.auth.uid);
       
-      // Pacientes pueden actualizar (marcar como leída) sus propias notificaciones
-      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if isStaff();
     }
   }
 }

@@ -76,6 +76,19 @@ export const signIn = async (email, password) => {
             };
         }
 
+        // Fetch profile to check status
+        const { profile } = await getUserProfile(user.uid);
+        if (profile && profile.status === 'inactive') {
+            await firebaseSignOut(auth);
+            return {
+                user: null,
+                error: {
+                    code: 'auth/account-inactive',
+                    message: 'Tu cuenta ha sido desactivada. Por favor contacta al administrador.'
+                }
+            };
+        }
+
         return { user: userCredential.user, error: null };
     } catch (error) {
         console.error('Sign in error:', error);
@@ -123,7 +136,10 @@ export const getUserProfile = async (userId) => {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            return { profile: docSnap.data(), error: null };
+            return {
+                profile: { uid: docSnap.id, ...docSnap.data() },
+                error: null
+            };
         } else {
             return { profile: null, error: new Error('Profile not found') };
         }
@@ -139,9 +155,9 @@ export const getUserProfile = async (userId) => {
  * @param {object} updates - Profile data to update
  * @returns {Promise<{error}>}
  */
-export const updateUserProfile = async (userId, updates) => {
+export const updateUserProfile = async (userId, updates, collectionName = 'users') => {
     try {
-        const docRef = doc(db, 'users', userId);
+        const docRef = doc(db, collectionName, userId);
         await updateDoc(docRef, {
             ...updates,
             updatedAt: new Date().toISOString()
@@ -168,7 +184,7 @@ export const onAuthChange = (callback) => {
  * @param {File} file - Image file to upload
  * @returns {Promise<{photoURL, error}>}
  */
-export const uploadProfilePhoto = async (userId, file) => {
+export const uploadProfilePhoto = async (userId, file, collectionName = 'users') => {
     try {
         // Convert image to Base64
         const base64 = await new Promise((resolve, reject) => {
@@ -178,8 +194,8 @@ export const uploadProfilePhoto = async (userId, file) => {
             reader.readAsDataURL(file);
         });
 
-        // Update user profile with Base64 photo
-        await updateUserProfile(userId, { photoURL: base64 });
+        // Update profile with Base64 photo
+        await updateUserProfile(userId, { photoURL: base64 }, collectionName);
 
         return { photoURL: base64, error: null };
     } catch (error) {

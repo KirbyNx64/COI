@@ -2,6 +2,7 @@
     max-width: 1400px;
     margin: 0 auto;
     padding: 2rem;
+    animation: fadeIn 0.5s ease-out;
 }
 
 .patients-header {
@@ -795,8 +796,11 @@
     font-size: 0.875rem;
 }
 
-/* Responsive Design */
 @media (max-width: 1024px) {
+    .patients-management {
+        padding: 1rem;
+    }
+
     .patients-table-container {
         overflow-x: visible;
         background: transparent;
@@ -824,7 +828,7 @@
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         border: 1px solid #e2e8f0;
-        padding: 1.25rem;
+        padding: 1rem;
     }
 
     .patients-table td {
@@ -945,17 +949,14 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
 }
 
 .add-patient-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(44, 82, 130, 0.4);
 }
 
 .add-patient-button:active {
     transform: translateY(0);
-    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
 }
 
 .add-patient-button svg {
@@ -1484,5 +1485,17 @@
 
     .history-content {
         padding: 1rem !important;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

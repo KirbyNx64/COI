@@ -1,15 +1,37 @@
-import { useState, useEffect, useRef } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth } from '../firebaseConfig';
 import { subscribeToUserNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../services/notificationService';
 import './Header.css';
 
+const initialState = {
+  isMenuOpen: false,
+  isProfileMenuOpen: false,
+  isNotificationOpen: false,
+  notifications: [],
+  unreadCount: 0
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'TOGGLE_MENU':
+      return { ...state, isMenuOpen: !state.isMenuOpen, isProfileMenuOpen: false, isNotificationOpen: false };
+    case 'TOGGLE_PROFILE':
+      return { ...state, isProfileMenuOpen: !state.isProfileMenuOpen, isNotificationOpen: false, isMenuOpen: false };
+    case 'TOGGLE_NOTIFICATIONS':
+      return { ...state, isNotificationOpen: !state.isNotificationOpen, isProfileMenuOpen: false, isMenuOpen: false };
+    case 'CLOSE_ALL':
+      return { ...state, isMenuOpen: false, isProfileMenuOpen: false, isNotificationOpen: false };
+    case 'SET_NOTIFICATIONS':
+      return { ...state, notifications: action.notifications, unreadCount: action.unreadCount };
+    default:
+      return state;
+  }
+}
+
 function Header({ onLogout, userData, userType }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { isMenuOpen, isProfileMenuOpen, isNotificationOpen, notifications, unreadCount } = state;
 
   const profileRef = useRef(null);
   const mobileMenuRef = useRef(null);
@@ -18,67 +40,42 @@ function Header({ onLogout, userData, userType }) {
 
   // Handle both patient (nombres) and staff (nombre) data structures
   const displayName = userData ? (userData.nombres || userData.nombre || 'Usuario') : 'Usuario';
-
   const isStaff = userType === 'admin' || userType === 'doctor';
 
-  // Sort notifications locally if needed, but service already sorts
-
-  // Close profile menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
-        setIsProfileMenuOpen(false);
+        if (state.isProfileMenuOpen) dispatch({ type: 'CLOSE_ALL' });
       }
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setIsNotificationOpen(false);
+        if (state.isNotificationOpen) dispatch({ type: 'CLOSE_ALL' });
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        if (state.isMenuOpen) dispatch({ type: 'CLOSE_ALL' });
       }
     };
 
-    if (isProfileMenuOpen || isNotificationOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [state.isProfileMenuOpen, state.isNotificationOpen, state.isMenuOpen]);
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isProfileMenuOpen, isNotificationOpen]);
-
-  // Subscribe to notifications
   // Subscribe to notifications
   useEffect(() => {
     const userId = auth.currentUser?.uid;
-    // Only subscribe for patients
     if (userId && !isStaff) {
       const unsubscribe = subscribeToUserNotifications(userId, (data) => {
-        setNotifications(data.notifications);
-        setUnreadCount(data.unreadCount);
+        dispatch({ type: 'SET_NOTIFICATIONS', notifications: data.notifications, unreadCount: data.unreadCount });
       });
       return () => unsubscribe();
     }
   }, [isStaff]);
 
-  // Close mobile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isMenuOpen]);
-
   const handleNotificationClick = async (notification) => {
     if (!notification.read) {
       await markNotificationAsRead(notification.id);
     }
-    setIsNotificationOpen(false);
+    dispatch({ type: 'CLOSE_ALL' });
     if (notification.link) {
       navigate(notification.link);
     }
@@ -92,11 +89,16 @@ function Header({ onLogout, userData, userType }) {
     }
   };
 
+  const handleKeyPress = (e, callback) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      callback();
+    }
+  };
+
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
-    // Firestore timestamp check
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-
     const now = new Date();
     const diff = now - date;
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -114,7 +116,7 @@ function Header({ onLogout, userData, userType }) {
     <header className="header">
       <div className="container">
         <div className="header-content">
-          <Link to={isStaff ? "/staff/dashboard" : "/"} className="logo">
+          <Link to={isStaff ? "/staff/dashboard" : "/"} className="logo" aria-label="Volver al inicio">
             <img src={`${import.meta.env.BASE_URL}logo.webp`} alt="Clínica Dental Dr. Cesar Vásquez" className="logo-image" />
           </Link>
           <div className="header-actions">
@@ -122,8 +124,9 @@ function Header({ onLogout, userData, userType }) {
             <div ref={mobileMenuRef}>
               <button
                 className="mobile-menu-btn"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Menú"
+                onClick={() => dispatch({ type: 'TOGGLE_MENU' })}
+                aria-label="Abrir menú de navegación"
+                aria-expanded={isMenuOpen}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -135,36 +138,38 @@ function Header({ onLogout, userData, userType }) {
               <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
                 {!isStaff && (
                   <>
-                    <Link to="/" className="nav-button" onClick={() => setIsMenuOpen(false)}>Inicio</Link>
-                    <Link to="/cita" className="nav-button" onClick={() => setIsMenuOpen(false)}>Cita</Link>
-                    <Link to="/contacto" className="nav-button" onClick={() => setIsMenuOpen(false)}>Contacto</Link>
+                    <Link to="/" className="nav-button" onClick={() => dispatch({ type: 'CLOSE_ALL' })}>Inicio</Link>
+                    <Link to="/cita" className="nav-button" onClick={() => dispatch({ type: 'CLOSE_ALL' })}>Cita</Link>
+                    <Link to="/contacto" className="nav-button" onClick={() => dispatch({ type: 'CLOSE_ALL' })}>Contacto</Link>
                   </>
                 )}
                 {isStaff && (
-                  <Link to="/staff/dashboard" className="nav-button" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+                  <Link to="/staff/dashboard" className="nav-button" onClick={() => dispatch({ type: 'CLOSE_ALL' })}>Dashboard</Link>
                 )}
               </nav>
             </div>
 
-            {/* Notifications Section (Only for patients) */}
             {!isStaff && (
               <div className="notification-container" ref={notificationRef}>
                 <button
                   className="notification-btn"
-                  onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                  aria-label="Notificaciones"
+                  onClick={() => dispatch({ type: 'TOGGLE_NOTIFICATIONS' })}
+                  aria-label="Ver notificaciones"
+                  aria-expanded={isNotificationOpen}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
                   {unreadCount > 0 && (
-                    <span className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                    <span className="notification-badge" aria-label={`${unreadCount} notificaciones no leídas`}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
                   )}
                 </button>
 
                 {isNotificationOpen && (
-                  <div className="notification-dropdown">
+                  <div className="notification-dropdown" role="dialog" aria-label="Bandeja de notificaciones">
                     <div className="notification-header">
                       <h3>Notificaciones</h3>
                       {unreadCount > 0 && (
@@ -180,6 +185,10 @@ function Header({ onLogout, userData, userType }) {
                             key={notification.id}
                             className={`notification-item ${!notification.read ? 'unread' : ''}`}
                             onClick={() => handleNotificationClick(notification)}
+                            onKeyDown={(e) => handleKeyPress(e, () => handleNotificationClick(notification))}
+                            role="button"
+                            tabIndex="0"
+                            aria-label={`${notification.title}: ${notification.message}`}
                           >
                             <div className="notification-item-header">
                               <span className="notification-title">{notification.title}</span>
@@ -202,17 +211,18 @@ function Header({ onLogout, userData, userType }) {
             <div className="profile-container" ref={profileRef}>
               <button
                 className="profile-btn"
-                aria-label="Perfil"
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                aria-label="Abrir menú de perfil"
+                aria-expanded={isProfileMenuOpen}
+                onClick={() => dispatch({ type: 'TOGGLE_PROFILE' })}
               >
                 {userData?.photoURL ? (
                   <img
                     src={userData.photoURL}
-                    alt="Perfil"
+                    alt=""
                     className="profile-photo-small"
                   />
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                   </svg>
@@ -221,19 +231,24 @@ function Header({ onLogout, userData, userType }) {
               </button>
 
               {isProfileMenuOpen && (
-                <div className="profile-dropdown">
+                <div className="profile-dropdown" role="menu">
                   {!isStaff && (
-                    <>
-                      <Link
-                        to="/perfil"
-                        className="dropdown-item"
-                        onClick={() => setIsProfileMenuOpen(false)}
-                      >
-                        Perfil
-                      </Link>
-                    </>
+                    <Link
+                      to="/perfil"
+                      className="dropdown-item"
+                      onClick={() => dispatch({ type: 'CLOSE_ALL' })}
+                      role="menuitem"
+                    >
+                      Perfil
+                    </Link>
                   )}
-                  <button className="dropdown-item logout" onClick={onLogout}>Cerrar sesión</button>
+                  <button
+                    className="dropdown-item logout"
+                    onClick={onLogout}
+                    role="menuitem"
+                  >
+                    Cerrar sesión
+                  </button>
                 </div>
               )}
             </div>

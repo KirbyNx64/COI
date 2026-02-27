@@ -256,15 +256,22 @@
     margin-top: 2rem;
 }
 
-.forgot-password a {
+.forgot-password a,
+.forgot-password-link {
+    background: none;
+    border: none;
+    padding: 0;
     color: #64748b;
     font-size: 0.95rem;
     font-weight: 600;
     text-decoration: none;
     transition: color 0.2s;
+    cursor: pointer;
+    font-family: inherit;
 }
 
-.forgot-password a:hover {
+.forgot-password a:hover,
+.forgot-password-link:hover {
     color: #0066cc;
 }
 

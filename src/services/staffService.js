@@ -4,7 +4,7 @@ import {
     signOut as firebaseSignOut,
     sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db, secondaryAuth } from '../firebaseConfig';
 
 /**
@@ -16,8 +16,8 @@ import { auth, db, secondaryAuth } from '../firebaseConfig';
  */
 export const createStaffProfile = async (email, password, staffData = {}) => {
     try {
-        // Create user with email and password
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Create user with email and password without affecting current session
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
         const user = userCredential.user;
 
         // Save staff profile to Firestore in 'staff' collection
@@ -28,13 +28,14 @@ export const createStaffProfile = async (email, password, staffData = {}) => {
             cargo: staffData.cargo || '',
             role: staffData.role || 'doctor', // 'admin' or 'doctor'
             telefono: staffData.telefono || '',
+            status: 'active',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             createdBy: staffData.createdBy || user.uid // who created this account
         });
 
-        // Sign out immediately after creation (admin will create accounts for others)
-        await firebaseSignOut(auth);
+        // Sign out the secondary session immediately
+        await firebaseSignOut(secondaryAuth);
 
         return { success: true, error: null };
     } catch (error) {
@@ -71,6 +72,19 @@ export const signInStaff = async (email, password) => {
             };
         }
 
+        // Check if account is active
+        if (staffProfile.profile.status === 'inactive') {
+            await firebaseSignOut(auth);
+            return {
+                user: null,
+                staffProfile: null,
+                error: {
+                    code: 'auth/account-inactive',
+                    message: 'Tu cuenta ha sido desactivada. Por favor contacta al administrador.'
+                }
+            };
+        }
+
         return {
             user: userCredential.user,
             staffProfile: staffProfile.profile,
@@ -93,7 +107,10 @@ export const getStaffProfile = async (userId) => {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            return { profile: docSnap.data(), error: null };
+            return {
+                profile: { uid: docSnap.id, ...docSnap.data() },
+                error: null
+            };
         } else {
             return { profile: null, error: new Error('Staff profile not found') };
         }
@@ -331,5 +348,64 @@ export const createPatientWithTempPassword = async (patientData, createdBy) => {
             patient: null,
             error: { ...error, message: errorMessage }
         };
+    }
+};
+
+/**
+ * Get full history for a patient (appointments)
+ * @param {string} patientId - Patient's ID
+ * @returns {Promise<{history, error}>}
+ */
+export const getPatientHistory = async (patientId) => {
+    try {
+        const q = query(
+            collection(db, 'appointments'),
+            where('userId', '==', patientId)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const history = [];
+
+        querySnapshot.forEach((doc) => {
+            history.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        // Sort by date and time (most recent first)
+        history.sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateB - dateA;
+        });
+
+        return { history, error: null };
+    } catch (error) {
+        console.error('Error getting patient history:', error);
+        return { history: [], error };
+    }
+};
+/**
+ * Get all staff members (admin privilege)
+ * @returns {Promise<{staff, error}>}
+ */
+export const getAllStaffMembers = async () => {
+    try {
+        const staffRef = collection(db, 'staff');
+        const querySnapshot = await getDocs(staffRef);
+
+        const staff = [];
+        querySnapshot.forEach((doc) => {
+            staff.push({
+                uid: doc.id,
+                ...doc.data()
+            });
+        });
+
+        return { staff, error: null };
+    } catch (error) {
+        console.error('Error getting all staff members:', error);
+        return { staff: [], error };
     }
 };
