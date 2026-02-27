@@ -6,8 +6,10 @@ const StaffEditModal = ({
     member,
     editedMember,
     isSaving,
+    isUploadingPhoto,
     saveError,
     onFieldChange,
+    onPhotoUpload,
     onSaveChanges,
     onDeactivate
 }) => {
@@ -23,6 +25,46 @@ const StaffEditModal = ({
 
                 <div className="modal-body">
                     {saveError && <div className="save-error-message">{saveError}</div>}
+
+                    <div className="edit-modal-avatar-section">
+                        <input
+                            type="file"
+                            id="edit-photo-upload"
+                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                            onChange={onPhotoUpload}
+                            style={{ display: 'none' }}
+                            disabled={isUploadingPhoto || isSaving}
+                        />
+                        <label htmlFor="edit-photo-upload" className="edit-modal-avatar">
+                            {isUploadingPhoto ? (
+                                <div className="upload-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
+                            ) : editedMember.photoURL ? (
+                                <>
+                                    <img src={editedMember.photoURL} alt={editedMember.nombres} />
+                                    <div className="edit-photo-overlay">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                            <circle cx="12" cy="13" r="4"></circle>
+                                        </svg>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="edit-avatar-placeholder">{editedMember.nombres?.charAt(0) || 'U'}</span>
+                                    <div className="edit-photo-overlay">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                            <circle cx="12" cy="13" r="4"></circle>
+                                        </svg>
+                                    </div>
+                                </>
+                            )}
+                        </label>
+                        <div className="edit-modal-avatar-text">
+                            <h3>Foto de Perfil</h3>
+                            <p>Haz clic en la imagen para cambiarla (JPG, PNG, max 5MB)</p>
+                        </div>
+                    </div>
 
                     <div className="edit-form-grid">
                         <div className="form-group">

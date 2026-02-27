@@ -11,9 +11,10 @@ const StaffAppointments = ({ userType, userData }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [dateFilter, setDateFilter] = useState('all'); // 'all', 'today', 'week'
+    const [dateFilter, setDateFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
     const [clinicFilter, setClinicFilter] = useState('all');
+    const [assignmentFilter, setAssignmentFilter] = useState('all'); // 'all', 'assigned', 'unassigned'
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [patientDetails, setPatientDetails] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -59,7 +60,7 @@ const StaffAppointments = ({ userType, userData }) => {
 
     useEffect(() => {
         applyFilters();
-    }, [appointments, searchTerm, dateFilter, statusFilter, clinicFilter]);
+    }, [appointments, searchTerm, dateFilter, statusFilter, clinicFilter, assignmentFilter]);
 
     // Block body scroll when modal is open
     useEffect(() => {
@@ -151,6 +152,13 @@ const StaffAppointments = ({ userType, userData }) => {
                 const reason = (apt.reason || '').toLowerCase();
                 return patientName.includes(searchLower) || reason.includes(searchLower);
             });
+        }
+
+        // Assignment filter (admin only)
+        if (assignmentFilter === 'assigned') {
+            filtered = filtered.filter(apt => !!apt.doctorId);
+        } else if (assignmentFilter === 'unassigned') {
+            filtered = filtered.filter(apt => !apt.doctorId);
         }
 
         setFilteredAppointments(filtered);
@@ -398,6 +406,14 @@ const StaffAppointments = ({ userType, userData }) => {
                             <option value="usulutan">Usulután</option>
                         </select>
 
+                        {userType === 'admin' && (
+                            <select value={assignmentFilter} onChange={(e) => setAssignmentFilter(e.target.value)} className="filter-select">
+                                <option value="all">Todas</option>
+                                <option value="assigned">Asignadas</option>
+                                <option value="unassigned">Sin asignar</option>
+                            </select>
+                        )}
+
                         <button
                             onClick={loadAppointments}
                             className={`refresh-button ${isLoading ? 'spinning' : ''}`}
@@ -453,7 +469,10 @@ const StaffAppointments = ({ userType, userData }) => {
                             {currentAppointmentsSubset.map((app) => (
                                 <tr
                                     key={app.id}
-                                    className={isToday(app.date) ? 'today-appointment' : ''}
+                                    className={`
+                                        ${isToday(app.date) ? 'today-appointment' : ''}
+                                        ${userType === 'admin' && !app.doctorId ? 'unassigned-appointment' : ''}
+                                    `.trim()}
                                 >
                                     <td data-label="Fecha">
                                         <div className="appointment-date">
@@ -470,9 +489,16 @@ const StaffAppointments = ({ userType, userData }) => {
                                     <td data-label="Clínica">{getClinicaLabel(app.clinica)}</td>
                                     <td data-label="Motivo">{app.reason || 'N/A'}</td>
                                     <td data-label="Estado">
-                                        <span className={`status-badge status-${app.status}`}>
-                                            {getStatusLabel(app.status)}
-                                        </span>
+                                        <div className="unassigned-badge-container">
+                                            <span className={`status-badge status-${app.status}`}>
+                                                {getStatusLabel(app.status)}
+                                            </span>
+                                            {userType === 'admin' && !app.doctorId && (
+                                                <span className="unassigned-inline-badge">
+                                                    Sin Asignar
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td data-label="Acciones">
                                         <button

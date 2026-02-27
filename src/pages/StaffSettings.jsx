@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAllStaffMembers, updateStaffProfile, createStaffProfile } from '../services/staffService';
+import { uploadProfilePhoto } from '../services/authService';
+import { compressImage } from '../utils/imageUtils';
 import StaffEditModal from '../components/Staff/StaffEditModal';
 import AddStaffModal from '../components/Staff/AddStaffModal';
 import ConfirmationModal from '../components/Modals/ConfirmationModal';
@@ -15,6 +17,7 @@ const StaffSettings = () => {
     const [selectedMember, setSelectedMember] = useState(null);
     const [editedMember, setEditedMember] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     const [saveError, setSaveError] = useState('');
 
     // Add Modal state
@@ -67,6 +70,51 @@ const StaffSettings = () => {
 
     const handleFieldChange = (field, value) => {
         setEditedMember(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handlePhotoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            setSaveError('Por favor, selecciona una imagen válida (JPG, PNG o WEBP)');
+            return;
+        }
+
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setSaveError('La imagen debe ser menor a 5MB');
+            return;
+        }
+
+        setIsUploadingPhoto(true);
+        setSaveError('');
+
+        try {
+            const compressedBlob = await compressImage(file);
+            const compressedFile = new File([compressedBlob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            });
+
+            const { photoURL, error } = await uploadProfilePhoto(selectedMember.uid, compressedFile, 'staff');
+
+            if (error) {
+                console.error('Upload error:', error);
+                setSaveError('Error al subir la foto.');
+            } else {
+                setEditedMember(prev => ({ ...prev, photoURL }));
+                setStaffList(prevList =>
+                    prevList.map(m => m.uid === selectedMember.uid ? { ...m, photoURL } : m)
+                );
+            }
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            setSaveError('Ocurrió un error al subir la foto.');
+        } finally {
+            setIsUploadingPhoto(false);
+        }
     };
 
     const handleSaveChanges = async () => {
@@ -229,8 +277,10 @@ const StaffSettings = () => {
                 member={selectedMember}
                 editedMember={editedMember}
                 isSaving={isSaving}
+                isUploadingPhoto={isUploadingPhoto}
                 saveError={saveError}
                 onFieldChange={handleFieldChange}
+                onPhotoUpload={handlePhotoUpload}
                 onSaveChanges={handleSaveChanges}
                 onDeactivate={handleDeactivate}
             />
