@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { getAllAppointments, updateAppointmentStatus, updateAppointment } from '../services/appointmentService';
+import { useState, useEffect, useRef } from 'react';
+import { getFilteredAppointments, updateAppointmentStatus, updateAppointment, getAppointmentsByDui } from '../services/appointmentService';
 import { getPatientById, getAllStaffMembers } from '../services/staffService';
 import { createNotification } from '../services/notificationService';
 import EditAppointmentModal from '../components/EditAppointmentModal';
@@ -30,6 +30,10 @@ const StaffAppointments = ({ userType, userData }) => {
     const [isLoadingStaff, setIsLoadingStaff] = useState(false);
     const [showAssignDoctor, setShowAssignDoctor] = useState(false);
 
+    // DUI search state
+    const [isDuiMode, setIsDuiMode] = useState(false);
+    const duiSearchTimeout = useRef(null);
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -45,22 +49,50 @@ const StaffAppointments = ({ userType, userData }) => {
     };
 
     useEffect(() => {
-        loadAppointments();
-        loadStaff();
-    }, []);
-
-    const loadStaff = async () => {
-        setIsLoadingStaff(true);
-        const { staff, error } = await getAllStaffMembers();
-        if (!error && staff) {
-            setStaffList(staff);
+        if (!isDuiMode) {
+            loadFilteredAppointments();
         }
-        setIsLoadingStaff(false);
+    }, [dateFilter, statusFilter, clinicFilter, assignmentFilter, isDuiMode]);
+
+    // DUI format detector: ########-#
+    const isDuiFormat = (text) => /^\d{8}-\d$/.test(text.trim());
+
+    // Handle DUI search button / Enter key
+    const handleDuiSearch = async () => {
+        const trimmed = searchTerm.trim();
+        if (!isDuiFormat(trimmed)) return;
+
+        setIsLoading(true);
+        const { appointments: duiResults, error } = await getAppointmentsByDui(trimmed);
+        setIsLoading(false);
+
+        if (error) {
+            showToastMessage('Error al buscar por DUI. Intenta de nuevo.', 'error');
+            return;
+        }
+
+        setIsDuiMode(true);
+        setFilteredAppointments(duiResults);
+        setCurrentPage(1);
     };
 
-    useEffect(() => {
-        applyFilters();
-    }, [appointments, searchTerm, dateFilter, statusFilter, clinicFilter, assignmentFilter]);
+    // Auto-format DUI input: ########-#  (max 10 chars)
+    const formatDuiInput = (value) => {
+        const digits = value.replace(/\D/g, '').slice(0, 9);
+        if (digits.length > 8) {
+            return `${digits.slice(0, 8)}-${digits.slice(8)}`;
+        }
+        return digits;
+    };
+
+    // Reset DUI mode when search term is cleared
+    const handleSearchChange = (e) => {
+        const formatted = formatDuiInput(e.target.value);
+        setSearchTerm(formatted);
+        if (!formatted) {
+            setIsDuiMode(false);
+        }
+    };
 
     // Block body scroll when modal is open
     useEffect(() => {
@@ -76,94 +108,62 @@ const StaffAppointments = ({ userType, userData }) => {
         };
     }, [showDetailModal, showEditModal]);
 
-    const loadAppointments = async () => {
+    const loadFilteredAppointments = async (force = false, overrides = null) => {
+        if (isDuiMode && !force) return; // DUI search manages its own state
         setIsLoading(true);
         setError('');
 
-        const { appointments: appointmentsData, error: loadError } = await getAllAppointments();
+        const currentStatus = overrides ? overrides.statusFilter : statusFilter;
+        const currentClinic = overrides ? overrides.clinicFilter : clinicFilter;
+        const currentDate = overrides ? overrides.dateFilter : dateFilter;
+        const currentAssignment = overrides ? overrides.assignmentFilter : assignmentFilter;
+
+        const doctorId = userData?.uid || userData?.id;
+        const { appointments: data, error: loadError } = await getFilteredAppointments({
+            statusFilter: currentStatus,
+            clinicFilter: currentClinic,
+            dateFilter: currentDate,
+            doctorId,
+            userType
+        });
 
         if (loadError) {
             setError('Error al cargar las citas. Verifica los permisos de Firestore.');
-            console.error('Error loading appointments:', loadError);
-        } else {
-            if (userType !== 'admin' && userData) {
-                const doctorId = userData.uid || userData.id;
-                setAppointments(appointmentsData.filter(appt => appt.doctorId === doctorId));
-            } else {
-                setAppointments(appointmentsData);
-            }
+            console.error('Error loading filtered appointments:', loadError);
+            setIsLoading(false);
+            return;
         }
 
-        setIsLoading(false);
-    };
+        // Apply client-side filters: assignment
+        let filtered = [...data];
 
-    const applyFilters = () => {
-        let filtered = [...appointments];
-
-        // Helper for local date formatting e.g., 'YYYY-MM-DD'
-        const getLocalDateString = (date) => {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
-
-        // Date filter
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStr = getLocalDateString(today);
-
-        if (dateFilter === 'today') {
-            filtered = filtered.filter(apt => apt.date === todayStr);
-        } else if (dateFilter === 'yesterday') {
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = getLocalDateString(yesterday);
-            filtered = filtered.filter(apt => apt.date === yesterdayStr);
-        } else if (dateFilter === 'tomorrow') {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = getLocalDateString(tomorrow);
-            filtered = filtered.filter(apt => apt.date === tomorrowStr);
-        } else if (dateFilter === 'week') {
-            const weekFromNow = new Date(today);
-            weekFromNow.setDate(weekFromNow.getDate() + 7);
-            filtered = filtered.filter(apt => {
-                const aptDate = new Date(apt.date);
-                return aptDate >= today && aptDate <= weekFromNow;
-            });
-        }
-
-        // Status filter
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(apt => apt.status === statusFilter);
-        }
-
-        // Clinic filter
-        if (clinicFilter !== 'all') {
-            filtered = filtered.filter(apt => apt.clinica === clinicFilter);
-        }
-
-        // Search filter
-        if (searchTerm.trim() !== '') {
-            const searchLower = searchTerm.toLowerCase();
-            filtered = filtered.filter(apt => {
-                const patientName = (apt.patientName || '').toLowerCase();
-                const reason = (apt.reason || '').toLowerCase();
-                return patientName.includes(searchLower) || reason.includes(searchLower);
-            });
-        }
-
-        // Assignment filter (admin only)
-        if (assignmentFilter === 'assigned') {
+        if (currentAssignment === 'assigned') {
             filtered = filtered.filter(apt => !!apt.doctorId);
-        } else if (assignmentFilter === 'unassigned') {
+        } else if (currentAssignment === 'unassigned') {
             filtered = filtered.filter(apt => !apt.doctorId);
         }
 
         setFilteredAppointments(filtered);
-        setCurrentPage(1); // Reset to first page on search/filter
+        setCurrentPage(1);
+        setIsLoading(false);
     };
+
+    // No auto-reload on searchTerm — search is manual (button / Enter)
+
+    const loadStaff = async () => {
+        setIsLoadingStaff(true);
+        const { staff, error } = await getAllStaffMembers();
+        if (!error && staff) {
+            setStaffList(staff);
+        }
+        setIsLoadingStaff(false);
+    };
+
+    // Initial load
+    useEffect(() => {
+        loadFilteredAppointments();
+        loadStaff();
+    }, []);
 
     // Pagination logic
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -197,7 +197,7 @@ const StaffAppointments = ({ userType, userData }) => {
             showToastMessage('Error al actualizar el estado de la cita', 'error');
         } else {
             // Reload appointments to reflect changes
-            await loadAppointments();
+            await loadFilteredAppointments();
             setShowDetailModal(false);
             showToastMessage('Estado actualizado correctamente', 'success');
         }
@@ -262,7 +262,7 @@ const StaffAppointments = ({ userType, userData }) => {
             // Update the selected appointment with new notes
             setSelectedAppointment({ ...selectedAppointment, notasMedico, recetaMedica, diagnostico });
             // Reload appointments to reflect changes
-            await loadAppointments();
+            await loadFilteredAppointments();
             showToastMessage('Información médica guardada exitosamente', 'success');
         }
 
@@ -270,6 +270,7 @@ const StaffAppointments = ({ userType, userData }) => {
     };
 
     const handleEditAppointment = () => {
+        // Ambos cambios se agrupan en un solo re-render (React 18 auto-batch)
         setShowDetailModal(false);
         setShowEditModal(true);
     };
@@ -277,7 +278,7 @@ const StaffAppointments = ({ userType, userData }) => {
     const handleEditSuccess = async () => {
         setShowEditModal(false);
         setShowDetailModal(false);
-        await loadAppointments();
+        await loadFilteredAppointments();
     };
 
     const handleEditCancel = () => {
@@ -302,7 +303,7 @@ const StaffAppointments = ({ userType, userData }) => {
             showToastMessage('Médico asignado correctamente', 'success');
             setSelectedAppointment({ ...selectedAppointment, doctorId, doctorName });
             setShowAssignDoctor(false);
-            await loadAppointments();
+            await loadFilteredAppointments();
         }
         setIsUpdatingStatus(false);
     };
@@ -369,20 +370,41 @@ const StaffAppointments = ({ userType, userData }) => {
                     <div className="search-box">
                         <input
                             type="text"
-                            placeholder="Buscar por paciente o motivo..."
+                            placeholder="Buscar por DUI"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="search-input"
+                            onChange={handleSearchChange}
+                            onKeyDown={(e) => e.key === 'Enter' && handleDuiSearch()}
+                            className={`search-input ${isDuiMode ? 'dui-search-active' : ''}`}
                         />
                         <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
                             <path d="m21 21-4.35-4.35"></path>
                         </svg>
+                        {searchTerm && (
+                            <button
+                                className="dui-clear-btn"
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setIsDuiMode(false);
+                                }}
+                                title="Limpiar búsqueda"
+                            >
+                                ✕
+                            </button>
+                        )}
+                        <button
+                            className="dui-search-btn"
+                            onClick={handleDuiSearch}
+                            disabled={isLoading}
+                            title="Buscar por DUI en servidor"
+                        >
+                            {isLoading ? '...' : 'Buscar DUI'}
+                        </button>
                     </div>
 
                     <div className="filter-group">
                         <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="filter-select">
-                            <option value="all">Todas las fechas</option>
+                            <option value="all">Últimos 3 meses</option>
                             <option value="yesterday">Ayer</option>
                             <option value="today">Hoy</option>
                             <option value="tomorrow">Mañana</option>
@@ -415,17 +437,22 @@ const StaffAppointments = ({ userType, userData }) => {
                         )}
 
                         <button
-                            onClick={loadAppointments}
-                            className={`refresh-button ${isLoading ? 'spinning' : ''}`}
-                            title="Actualizar datos"
-                            disabled={isLoading}
+                            onClick={() => {
+                                setSearchTerm('');
+                                setDateFilter('all');
+                                setStatusFilter('all');
+                                setClinicFilter('all');
+                                setAssignmentFilter('all');
+                                setIsDuiMode(false);
+                            }}
+                            className="clear-filters-button"
+                            title="Limpiar todos los filtros"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 2v6h-6"></path>
-                                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                                <path d="M3 22v-6h6"></path>
-                                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
+                            Limpiar
                         </button>
                     </div>
                 </div>
@@ -443,7 +470,7 @@ const StaffAppointments = ({ userType, userData }) => {
             ) : error ? (
                 <div className="error-container">
                     <p className="error-message">{error}</p>
-                    <button onClick={loadAppointments} className="retry-button">
+                    <button onClick={loadFilteredAppointments} className="retry-button">
                         Reintentar
                     </button>
                 </div>
@@ -549,141 +576,118 @@ const StaffAppointments = ({ userType, userData }) => {
 
             {/* Appointment Detail Modal */}
             {showDetailModal && selectedAppointment && (
-                <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-                    <div className="modal-content appointment-detail-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
+                <div className="dam-overlay" onClick={() => setShowDetailModal(false)}>
+                    <div className="dam-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="dam-header">
                             <h2>Detalles de la Cita</h2>
-                            <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+                            <button className="dam-close" onClick={() => setShowDetailModal(false)}>
                                 ×
                             </button>
                         </div>
 
-                        <div className="appointment-detail-content">
-                            <div className="detail-section">
+                        <div className="dam-body">
+                            {/* Información de la cita */}
+                            <div className="dam-section">
                                 <h3>Información de la Cita</h3>
-                                <div className="detail-grid">
-                                    <div className="detail-item">
-                                        <label>Fecha:</label>
+                                <div className="dam-grid">
+                                    <div className="dam-field">
+                                        <label>Fecha</label>
                                         <span>{formatDate(selectedAppointment.date)}</span>
                                     </div>
-                                    <div className="detail-item">
-                                        <label>Hora:</label>
+                                    <div className="dam-field">
+                                        <label>Hora</label>
                                         <span>{selectedAppointment.time}</span>
                                     </div>
-                                    <div className="detail-item">
-                                        <label>Clínica:</label>
+                                    <div className="dam-field">
+                                        <label>Clínica</label>
                                         <span>{getClinicaLabel(selectedAppointment.clinica)}</span>
                                     </div>
-                                    <div className="detail-item">
-                                        <label>Estado:</label>
+                                    <div className="dam-field">
+                                        <label>Estado</label>
                                         <span className={`status-badge status-${selectedAppointment.status}`}>
                                             {getStatusLabel(selectedAppointment.status)}
                                         </span>
                                     </div>
-                                    <div className="detail-item">
-                                        <label>Médico Asignado:</label>
-                                        <span style={{ fontWeight: 600, color: '#2c5282' }}>{selectedAppointment.doctorName || 'Sin asignar'}</span>
+                                    <div className="dam-field">
+                                        <label>Médico Asignado</label>
+                                        <span style={{ fontWeight: 600, color: '#2c5282' }}>
+                                            {selectedAppointment.doctorName || 'Sin asignar'}
+                                        </span>
                                     </div>
-                                    <div className="detail-item full-width">
-                                        <label>Motivo:</label>
+                                    <div className="dam-field dam-full">
+                                        <label>Motivo</label>
                                         <span>{selectedAppointment.reason || 'No especificado'}</span>
                                     </div>
                                     {selectedAppointment.notas && (
-                                        <div className="detail-item full-width">
-                                            <label>Notas:</label>
+                                        <div className="dam-field dam-full">
+                                            <label>Notas del Paciente</label>
                                             <span>{selectedAppointment.notas}</span>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
+                            {/* Información del paciente */}
                             {patientDetails && (
-                                <div className="detail-section">
+                                <div className="dam-section">
                                     <h3>Información del Paciente</h3>
-                                    <div className="detail-grid">
-                                        <div className="detail-item">
-                                            <label>Nombre:</label>
+                                    <div className="dam-grid">
+                                        <div className="dam-field">
+                                            <label>Nombre</label>
                                             <span>{patientDetails.nombres} {patientDetails.apellidos}</span>
                                         </div>
-                                        <div className="detail-item">
-                                            <label>Email:</label>
+                                        <div className="dam-field">
+                                            <label>Email</label>
                                             <span>{patientDetails.email}</span>
                                         </div>
-                                        <div className="detail-item">
-                                            <label>Teléfono:</label>
+                                        <div className="dam-field">
+                                            <label>Teléfono</label>
                                             <span>{patientDetails.telefono || 'N/A'}</span>
                                         </div>
-                                        <div className="detail-item">
-                                            <label>DUI:</label>
+                                        <div className="dam-field">
+                                            <label>DUI</label>
                                             <span>{patientDetails.dui || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="detail-section">
+                            {/* Sección médica */}
+                            <div className="dam-section">
                                 <h3>Sección Médica</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Receta Médica:</label>
+                                <div className="dam-medical-grid">
+                                    <div className="dam-medical-field">
+                                        <label>Receta Médica</label>
                                         <textarea
                                             value={recetaMedica}
                                             onChange={(e) => setRecetaMedica(e.target.value)}
                                             placeholder="Ingresa la receta médica aquí..."
                                             rows="3"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                borderRadius: '8px',
-                                                border: '1px solid #ddd',
-                                                fontSize: '0.95rem',
-                                                fontFamily: 'inherit',
-                                                resize: 'vertical'
-                                            }}
                                         />
                                     </div>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Notas del Médico:</label>
+                                    <div className="dam-medical-field">
+                                        <label>Notas del Médico</label>
                                         <textarea
                                             value={notasMedico}
                                             onChange={(e) => setNotasMedico(e.target.value)}
                                             placeholder="Agregar observaciones médicas..."
                                             rows="3"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                borderRadius: '8px',
-                                                border: '1px solid #ddd',
-                                                fontSize: '0.95rem',
-                                                fontFamily: 'inherit',
-                                                resize: 'vertical'
-                                            }}
                                         />
                                     </div>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Diagnóstico:</label>
+                                    <div className="dam-medical-field">
+                                        <label>Diagnóstico</label>
                                         <textarea
                                             value={diagnostico}
                                             onChange={(e) => setDiagnostico(e.target.value)}
                                             placeholder="Ingresa el diagnóstico aquí..."
                                             rows="3"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                borderRadius: '8px',
-                                                border: '1px solid #ddd',
-                                                fontSize: '0.95rem',
-                                                fontFamily: 'inherit',
-                                                resize: 'vertical'
-                                            }}
                                         />
                                     </div>
                                 </div>
                                 <button
                                     onClick={handleSaveNotasMedico}
-                                    disabled={isSavingNotes}
-                                    className="edit-button"
-                                    style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}
+                                    disabled={isSavingNotes || (!recetaMedica.trim() && !notasMedico.trim() && !diagnostico.trim())}
+                                    className="dam-save-notes-btn"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -694,45 +698,45 @@ const StaffAppointments = ({ userType, userData }) => {
                                 </button>
                             </div>
 
-                            <div className="detail-section">
+                            {/* Actualizar estado */}
+                            <div className="dam-section">
                                 <h3>Actualizar Estado</h3>
-                                <div className="status-buttons">
+                                <div className="dam-status-grid">
                                     <button
                                         onClick={() => handleStatusUpdate(selectedAppointment.id, 'programada')}
-                                        className={`status-update-btn status-programada ${selectedAppointment.status === 'programada' ? 'active' : ''}`}
+                                        className={`dam-status-btn status-programada ${selectedAppointment.status === 'programada' ? 'active' : ''}`}
                                         disabled={isUpdatingStatus}
                                     >
                                         Programada
                                     </button>
                                     <button
                                         onClick={() => handleStatusUpdate(selectedAppointment.id, 'terminada')}
-                                        className={`status-update-btn status-terminada ${selectedAppointment.status === 'terminada' ? 'active' : ''}`}
+                                        className={`dam-status-btn status-terminada ${selectedAppointment.status === 'terminada' ? 'active' : ''}`}
                                         disabled={isUpdatingStatus}
                                     >
                                         Terminada
                                     </button>
                                     <button
                                         onClick={() => handleStatusUpdate(selectedAppointment.id, 'cancelada')}
-                                        className={`status-update-btn status-cancelada ${selectedAppointment.status === 'cancelada' ? 'active' : ''}`}
+                                        className={`dam-status-btn status-cancelada ${selectedAppointment.status === 'cancelada' ? 'active' : ''}`}
                                         disabled={isUpdatingStatus}
                                     >
                                         Cancelada
                                     </button>
                                     <button
                                         onClick={() => handleStatusUpdate(selectedAppointment.id, 'perdida')}
-                                        className={`status-update-btn status-perdida ${selectedAppointment.status === 'perdida' ? 'active' : ''}`}
+                                        className={`dam-status-btn status-perdida ${selectedAppointment.status === 'perdida' ? 'active' : ''}`}
                                         disabled={isUpdatingStatus}
                                     >
                                         Perdida
                                     </button>
                                 </div>
                             </div>
-
                         </div>
 
-                        <div className="modal-actions">
+                        <div className="dam-actions">
                             {userType === 'admin' && (
-                                <button className="assign-button" onClick={handleAssignDoctor}>
+                                <button className="dam-btn dam-btn-assign" onClick={handleAssignDoctor}>
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                                         <circle cx="8.5" cy="7" r="4"></circle>
@@ -742,14 +746,14 @@ const StaffAppointments = ({ userType, userData }) => {
                                     Asignar Médico
                                 </button>
                             )}
-                            <button className="edit-button" onClick={handleEditAppointment}>
+                            <button className="dam-btn dam-btn-edit" onClick={handleEditAppointment}>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                                 Editar Cita
                             </button>
-                            <button className="close-button" onClick={() => setShowDetailModal(false)}>
+                            <button className="dam-btn dam-btn-ghost" onClick={() => setShowDetailModal(false)}>
                                 Cerrar
                             </button>
                         </div>
@@ -759,49 +763,49 @@ const StaffAppointments = ({ userType, userData }) => {
 
             {/* Assign Doctor Modal */}
             {showAssignDoctor && selectedAppointment && userType === 'admin' && (
-                <div className="modal-overlay" style={{ zIndex: 1050 }} onClick={() => setShowAssignDoctor(false)}>
-                    <div className="modal-content appointment-detail-modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
+                <div className="adm-overlay" onClick={() => setShowAssignDoctor(false)}>
+                    <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="adm-header">
                             <h2>Asignar Médico</h2>
-                            <button className="modal-close" onClick={() => setShowAssignDoctor(false)}>
+                            <button className="adm-close" onClick={() => setShowAssignDoctor(false)}>
                                 ×
                             </button>
                         </div>
-                        <div className="appointment-detail-content">
+                        <div className="adm-body">
                             {isLoadingStaff ? (
-                                <div style={{ padding: '2rem', textAlign: 'center' }}>Cargando médicos...</div>
+                                <div className="adm-loading">Cargando médicos...</div>
                             ) : (
-                                <div className="doctor-selection-grid">
+                                <div className="adm-grid">
                                     {staffList.map(doctor => (
                                         <div
                                             key={doctor.uid}
-                                            className={`doctor-selection-card ${selectedAppointment.doctorId === doctor.uid ? 'active' : ''}`}
+                                            className={`adm-card ${selectedAppointment.doctorId === doctor.uid ? 'adm-active' : ''}`}
                                             onClick={() => handleSaveDoctor(doctor.uid, `${doctor.nombres} ${doctor.apellidos}`)}
                                         >
-                                            <div className="doctor-avatar-circle">
+                                            <div className="adm-avatar">
                                                 {doctor.photoURL ? (
                                                     <img src={doctor.photoURL} alt={doctor.nombres} />
                                                 ) : (
                                                     <span>{doctor.nombres.charAt(0)}</span>
                                                 )}
                                             </div>
-                                            <div className="doctor-info-text">
-                                                <span className="doctor-name">{doctor.nombres} {doctor.apellidos}</span>
-                                                {doctor.especialidad && <span className="doctor-specialty">{doctor.especialidad}</span>}
+                                            <div className="adm-info">
+                                                <span className="adm-name">{doctor.nombres} {doctor.apellidos}</span>
+                                                {doctor.especialidad && <span className="adm-specialty">{doctor.especialidad}</span>}
                                             </div>
                                             {selectedAppointment.doctorId === doctor.uid && (
-                                                <span className="assigned-badge">Actual</span>
+                                                <span className="adm-badge-current">Actual</span>
                                             )}
                                         </div>
                                     ))}
                                     {staffList.length === 0 && (
-                                        <p className="no-doctors" style={{ padding: '2rem', textAlign: 'center' }}>No hay médicos disponibles.</p>
+                                        <p className="adm-empty">No hay médicos disponibles.</p>
                                     )}
                                 </div>
                             )}
                         </div>
-                        <div className="modal-actions">
-                            <button className="close-button" onClick={() => setShowAssignDoctor(false)}>
+                        <div className="adm-actions">
+                            <button className="adm-btn-ghost" onClick={() => setShowAssignDoctor(false)}>
                                 Cancelar
                             </button>
                         </div>
@@ -809,10 +813,12 @@ const StaffAppointments = ({ userType, userData }) => {
                 </div>
             )}
 
+
             {/* Edit Appointment Modal */}
             {showEditModal && selectedAppointment && (
                 <EditAppointmentModal
                     appointment={selectedAppointment}
+                    patientData={patientDetails}
                     onSuccess={handleEditSuccess}
                     onCancel={handleEditCancel}
                 />

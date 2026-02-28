@@ -1,0 +1,463 @@
+/* =============================================
+   PDM — Patient Detail Modal
+   Clases únicas para no colisionar con otros modales
+   ============================================= */
+
+.pdm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: pdmFadeIn 0.15s ease-out;
+}
+
+@keyframes pdmFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.pdm-modal {
+    background: white;
+    border-radius: 16px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    animation: pdmSlideUp 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes pdmSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Header */
+.pdm-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background: white;
+}
+
+.pdm-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #1e3a5f;
+    font-weight: 700;
+}
+
+.pdm-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1;
+}
+
+.pdm-close:hover:not(:disabled) {
+    color: #1e3a5f;
+    background: #f1f5f9;
+}
+
+.pdm-close:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Cuerpo scrollable */
+.pdm-body {
+    padding: 2rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Error de guardado */
+.pdm-save-error {
+    padding: 0.875rem 1rem;
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    border-radius: 10px;
+    color: #991b1b;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+}
+
+/* Secciones */
+.pdm-section {
+    margin-bottom: 1.75rem;
+}
+
+.pdm-section:last-child {
+    margin-bottom: 0;
+}
+
+.pdm-section h3 {
+    font-size: 1.05rem;
+    color: #1e3a5f;
+    margin: 0 0 0.875rem 0;
+    font-weight: 700;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pdm-section h3 svg {
+    width: 18px;
+    height: 18px;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+/* Sección técnica con fondo */
+.pdm-section-technical {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #e2e8f0;
+}
+
+.pdm-section-technical h3 {
+    color: #475569;
+}
+
+/* Grid de campos */
+.pdm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem 1rem;
+}
+
+/* Campo de dato */
+.pdm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 0.65rem 0.875rem;
+    border: 1px solid #e2e8f0;
+}
+
+.pdm-field.pdm-full {
+    grid-column: 1 / -1;
+}
+
+.pdm-field label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pdm-field span {
+    font-size: 0.95rem;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+/* Valor técnico (UID, fechas) */
+.pdm-technical-value {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #334155;
+    background: #ffffff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    word-break: break-all;
+}
+
+/* Fila del UID con botón copiar */
+.pdm-uid-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.pdm-uid-row .pdm-technical-value {
+    flex: 1;
+    min-width: 160px;
+}
+
+.pdm-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.875rem;
+    background: #2c5282;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.pdm-copy-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.pdm-copy-btn:hover {
+    background: #1e3a5f;
+    box-shadow: 0 3px 8px rgba(44, 82, 130, 0.3);
+}
+
+.pdm-copy-btn.pdm-copied {
+    background: #10b981;
+    animation: pdmCopyPop 0.3s ease;
+}
+
+.pdm-copy-btn.pdm-copied:hover {
+    background: #059669;
+}
+
+@keyframes pdmCopyPop {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.08);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Inputs en modo edición */
+.pdm-edit-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #1e3a5f;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background: white;
+}
+
+.pdm-edit-input:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
+}
+
+/* Hide default calendar picker */
+.pdm-edit-input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.pdm-edit-input[type="date"] {
+    position: relative;
+}
+
+/* Badge tipo paciente */
+.pdm-patient-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.pdm-patient-type.primera-vez {
+    background: #f0f7ff;
+    color: #1e3a5f;
+    border: 1px solid rgba(44, 82, 130, 0.2);
+}
+
+.pdm-patient-type.subsecuente {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* Footer de acciones */
+.pdm-actions {
+    padding: 1.25rem 2rem;
+    border-top: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    background: white;
+    flex-wrap: wrap;
+}
+
+.pdm-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    white-space: nowrap;
+}
+
+.pdm-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.pdm-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Botón principal (azul) */
+.pdm-btn-primary {
+    background: #2c5282;
+    color: white;
+}
+
+.pdm-btn-primary:hover:not(:disabled) {
+    background: #1e3a5f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
+}
+
+/* Botón ghost (gris) */
+.pdm-btn-ghost {
+    background: #e2e8f0;
+    color: #1e3a5f;
+}
+
+.pdm-btn-ghost:hover:not(:disabled) {
+    background: #cbd5e0;
+}
+
+/* Botón guardar (verde-azul, igual que primary pero diferenciado semánticamente) */
+.pdm-btn-save {
+    background: #2c5282;
+    color: white;
+}
+
+.pdm-btn-save:hover:not(:disabled) {
+    background: #1e3a5f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
+}
+
+/* ── Responsive: bottom-sheet en móvil ── */
+@media (max-width: 768px) {
+    .pdm-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .pdm-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 20px 20px 0 0;
+        margin: 0;
+    }
+
+    .pdm-header {
+        padding: 1rem;
+    }
+
+    .pdm-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .pdm-body {
+        padding: 1rem;
+    }
+
+    .pdm-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pdm-section {
+        margin-bottom: 1.25rem;
+    }
+
+    .pdm-section h3 {
+        font-size: 0.975rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .pdm-uid-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .pdm-uid-row .pdm-technical-value {
+        width: 100%;
+    }
+
+    .pdm-copy-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .pdm-actions {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .pdm-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.85rem;
+    }
+}

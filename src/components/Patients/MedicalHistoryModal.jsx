@@ -1,4 +1,5 @@
 import React from 'react';
+import './MedicalHistoryModal.css';
 
 const MedicalHistoryModal = ({
     isOpen,
@@ -11,16 +12,19 @@ const MedicalHistoryModal = ({
     if (!isOpen || !patient) return null;
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content history-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <div className="header-text">
+        <div className="mhm-overlay" onClick={onClose}>
+            <div className="mhm-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="mhm-header">
+                    <div className="mhm-header-text">
                         <h2>Historial Médico</h2>
-                        <span className="patient-subtitle">{patient.nombres} {patient.apellidos}</span>
+                        <span className="mhm-patient-subtitle">
+                            {patient.nombres} {patient.apellidos}
+                        </span>
                     </div>
-                    <button className="modal-close" onClick={onClose}>×</button>
+                    <button className="mhm-close" onClick={onClose}>×</button>
                 </div>
-                <div className="history-content">
+
+                <div className="mhm-body">
                     {isLoading ? (
                         <div className="loading-history">
                             <div className="loading-spinner"></div>
@@ -94,8 +98,9 @@ const MedicalHistoryModal = ({
                         </div>
                     )}
                 </div>
-                <div className="modal-actions">
-                    <button className="close-button" onClick={onClose}>
+
+                <div className="mhm-actions">
+                    <button className="mhm-btn-ghost" onClick={onClose}>
                         Cerrar
                     </button>
                 </div>

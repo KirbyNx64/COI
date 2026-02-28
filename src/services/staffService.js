@@ -4,7 +4,7 @@ import {
     signOut as firebaseSignOut,
     sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, orderBy, startAfter, limit, limitToLast, endBefore } from 'firebase/firestore';
 import { auth, db, secondaryAuth } from '../firebaseConfig';
 
 /**
@@ -162,6 +162,85 @@ export const getAllPatients = async () => {
     } catch (error) {
         console.error('Get all patients error:', error);
         return { patients: [], error };
+    }
+};
+
+/**
+ * Search patients by DUI (server-side)
+ * @param {string} dui - Patient DUI
+ * @returns {Promise<{patients, error}>}
+ */
+export const getPatientsByDui = async (dui) => {
+    try {
+        const q = query(
+            collection(db, 'users'),
+            where('dui', '==', dui.trim())
+        );
+        const querySnapshot = await getDocs(q);
+        const patients = [];
+        querySnapshot.forEach((doc) => {
+            patients.push({ id: doc.id, ...doc.data() });
+        });
+        return { patients, error: null };
+    } catch (error) {
+        console.error('Get patients by DUI error:', error);
+        return { patients: [], error };
+    }
+};
+
+
+/**
+ * Get patients with Firestore cursor-based pagination.
+ * Returns pageSize patients ordered by apellidos, starting after a cursor doc.
+ * @param {number} pageSize - Number of records per page
+ * @param {DocumentSnapshot|null} cursorDoc - Last doc of previous page (null for first page)
+ * @param {'next'|'prev'} direction - Navigation direction
+ * @param {DocumentSnapshot|null} firstDoc - First doc of current page (needed for going back)
+ * @returns {Promise<{patients, firstDoc, lastDoc, hasMore, error}>}
+ */
+export const getPatientsPaginated = async (pageSize = 10, cursorDoc = null, direction = 'next', firstDoc = null) => {
+    try {
+        let q;
+
+        if (direction === 'prev' && firstDoc) {
+            // Going backwards: get pageSize records ending before firstDoc
+            q = query(
+                collection(db, 'users'),
+                orderBy('apellidos'),
+                endBefore(firstDoc),
+                limitToLast(pageSize)
+            );
+        } else if (cursorDoc) {
+            // Going forward: get pageSize records starting after cursorDoc
+            q = query(
+                collection(db, 'users'),
+                orderBy('apellidos'),
+                startAfter(cursorDoc),
+                limit(pageSize)
+            );
+        } else {
+            // First page
+            q = query(
+                collection(db, 'users'),
+                orderBy('apellidos'),
+                limit(pageSize)
+            );
+        }
+
+        const querySnapshot = await getDocs(q);
+        const patients = [];
+        querySnapshot.forEach((doc) => {
+            patients.push({ id: doc.id, ...doc.data() });
+        });
+
+        const newFirstDoc = querySnapshot.docs[0] || null;
+        const newLastDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+        const hasMore = querySnapshot.docs.length === pageSize;
+
+        return { patients, firstDoc: newFirstDoc, lastDoc: newLastDoc, hasMore, error: null };
+    } catch (error) {
+        console.error('Error getting paginated patients:', error);
+        return { patients: [], firstDoc: null, lastDoc: null, hasMore: false, error };
     }
 };
 

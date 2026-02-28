@@ -52,7 +52,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               !isAuthenticated ? (
                 <StaffLogin onLogin={handleLogin} />
               ) : (
-                <Navigate to={isStaff ? (userType === 'admin' ? "/staff/dashboard" : "/staff/appointments") : "/"} replace />
+                <Navigate to={isStaff ? "/staff/appointments" : "/"} replace />
               )
             }
           />
@@ -66,7 +66,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               ) : userType === 'patient' ? (
                 <Home userData={userData} />
               ) : (
-                <Navigate to={userType === 'admin' ? "/staff/dashboard" : "/staff/appointments"} replace />
+                <Navigate to="/staff/appointments" replace />
               )
             }
           />
@@ -180,7 +180,7 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
             element={
               <Navigate to={
                 !isAuthenticated ? "/" :
-                  isStaff ? (userType === 'admin' ? "/staff/dashboard" : "/staff/appointments") :
+                  isStaff ? "/staff/appointments" :
                     "/"
               } replace />
             }

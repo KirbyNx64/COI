@@ -46,11 +46,11 @@ const StaffReports = () => {
         if (startDate && endDate) {
             loadReportData();
         }
-    }, [startDate, endDate]);
+    }, [startDate, endDate, statusFilter, clinicFilter]);
 
     useEffect(() => {
         applyFiltersAndSort();
-    }, [appointments, statusFilter, clinicFilter, searchTerm, sortColumn, sortDirection]);
+    }, [appointments, searchTerm, sortColumn, sortDirection]);
 
     const loadReportData = async () => {
         setIsLoading(true);
@@ -58,7 +58,8 @@ const StaffReports = () => {
 
         const { appointments: data, error: loadError } = await getAppointmentsByDateRange(
             startDate,
-            endDate
+            endDate,
+            { status: statusFilter, clinic: clinicFilter }
         );
 
         if (loadError) {
@@ -90,17 +91,8 @@ const StaffReports = () => {
     const applyFiltersAndSort = () => {
         let filtered = [...appointments];
 
-        // Apply status filter
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(apt => apt.status === statusFilter);
-        }
-
-        // Apply clinic filter
-        if (clinicFilter !== 'all') {
-            filtered = filtered.filter(apt => apt.clinica === clinicFilter);
-        }
-
-        // Apply search filter
+        // Only text search is applied client-side now;
+        // status and clinic are filtered server-side on load
         if (searchTerm.trim() !== '') {
             const searchLower = searchTerm.toLowerCase().replace(/-/g, '');
             filtered = filtered.filter(apt => {
@@ -174,11 +166,22 @@ const StaffReports = () => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        setEndDate(today.toISOString().split('T')[0]);
-        setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
+        const sd = thirtyDaysAgo.toISOString().split('T')[0];
+        const ed = today.toISOString().split('T')[0];
+
+        // If dates/filters haven't changed, we need to trigger manual reload
+        // because useEffect won't catch it if they were already default
+        const alreadyDefault = startDate === sd && endDate === ed && statusFilter === 'all' && clinicFilter === 'all';
+
+        setEndDate(ed);
+        setStartDate(sd);
         setStatusFilter('all');
         setClinicFilter('all');
         setSearchTerm('');
+
+        if (alreadyDefault) {
+            loadReportData();
+        }
     };
 
     const handleExportPDF = () => {
@@ -484,13 +487,14 @@ const StaffReports = () => {
                     </button>
                 </div>
             ) : filteredAppointments.length === 0 ? (
-                <div className="reports-empty-state">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}>
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="12"></line>
                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
                     </svg>
-                    <p>No se encontraron citas con los filtros seleccionados</p>
+                    <p style={{ margin: 0, fontWeight: 600 }}>No se encontraron citas</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem' }}>Prueba ajustando el rango de fechas o los filtros</p>
                 </div>
             ) : (
                 <div className="reports-table-container">

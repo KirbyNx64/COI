@@ -2,7 +2,6 @@
     padding: 2rem;
     max-width: 1200px;
     margin: 0 auto;
-    animation: fadeIn 0.5s ease-out;
 }
 
 .settings-header {
@@ -59,7 +58,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: #1e3a5f;
+    background: #2c5282;
     color: white;
     border: none;
     padding: 0.625rem 1.25rem;
@@ -144,6 +143,18 @@
     color: #2563eb;
 }
 
+.member-cargo,
+.member-email {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.member-info {
+    display: flex;
+    flex-direction: column;
+}
+
 .edit-staff-btn {
     display: flex;
     align-items: center;
@@ -180,17 +191,6 @@
     text-align: center;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 /* Modal Styles */
 .staff-edit-modal {
@@ -493,5 +493,7 @@
     .add-staff-btn {
         justify-content: center;
         width: 100%;
+        background: #2c5282;
+        /* Updated color */
     }
 }

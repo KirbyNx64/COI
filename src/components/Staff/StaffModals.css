@@ -1,0 +1,429 @@
+/* =============================================
+   SEM — Staff Edit Modal (Editar Datos del Personal)
+   ASM — Add Staff Modal (Agregar Nuevo Personal)
+   Clases únicas para no colisionar con otros modales
+   ============================================= */
+
+/* ── Overlay compartido con animación ── */
+.sem-overlay,
+.asm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: staffModalFadeIn 0.15s ease-out;
+}
+
+@keyframes staffModalFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ── Modal card ── */
+.sem-modal,
+.asm-modal {
+    background: white;
+    border-radius: 16px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 92vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    animation: staffModalSlideUp 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes staffModalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ── Header ── */
+.sem-header,
+.asm-header {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background: white;
+}
+
+.sem-header h2,
+.asm-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #1e3a5f;
+    font-weight: 700;
+}
+
+.sem-close,
+.asm-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1;
+}
+
+.sem-close:hover,
+.asm-close:hover {
+    color: #1e3a5f;
+    background: #f1f5f9;
+}
+
+/* ── Cuerpo scrollable ── */
+.sem-body,
+.asm-body {
+    padding: 1.5rem 1.75rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ── Error banner ── */
+.sem-error,
+.asm-error {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid #fee2e2;
+}
+
+/* ── Sección de foto (SEM) ── */
+.sem-avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.sem-avatar-label {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #1e3a5f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+    border: 3px solid white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.sem-avatar-label:hover .sem-photo-overlay {
+    opacity: 1;
+}
+
+.sem-avatar-label img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sem-avatar-placeholder {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.sem-photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 58, 95, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.sem-avatar-info h3 {
+    font-size: 1rem;
+    color: #1e3a5f;
+    margin: 0 0 0.25rem 0;
+    font-weight: 600;
+}
+
+.sem-avatar-info p {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.sem-upload-spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #1e3a5f;
+    border-radius: 50%;
+    animation: semSpin 1s linear infinite;
+}
+
+@keyframes semSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Grid de campos del formulario ── */
+.sem-form-grid,
+.asm-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.sem-form-group,
+.asm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sem-form-group.full,
+.asm-form-group.full {
+    grid-column: 1 / -1;
+}
+
+.sem-form-group label,
+.asm-form-group label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.sem-input,
+.asm-input {
+    padding: 0.7rem 0.875rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: #1e3a5f;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background: white;
+}
+
+.sem-input:focus,
+.asm-input:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
+}
+
+.sem-input.sem-disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
+}
+
+/* ── Zona de peligro (SEM) ── */
+.sem-danger-zone {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 1.25rem;
+    margin-top: 0.25rem;
+}
+
+.sem-danger-zone h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ef4444;
+    margin: 0 0 0.35rem 0;
+}
+
+.sem-danger-zone p {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0 0 0.875rem 0;
+}
+
+.sem-deactivate-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fee2e2;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sem-deactivate-btn:hover:not(:disabled) {
+    background: #dc2626;
+    color: white;
+}
+
+.sem-deactivate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Footer de acciones ── */
+.sem-actions,
+.asm-actions {
+    padding: 1rem 1.75rem;
+    border-top: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    background: white;
+}
+
+.sem-btn,
+.asm-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.sem-btn:disabled,
+.asm-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.sem-btn-primary,
+.asm-btn-primary {
+    background: #2c5282;
+    color: white;
+}
+
+.sem-btn-primary:hover:not(:disabled),
+.asm-btn-primary:hover:not(:disabled) {
+    background: #1e3a5f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
+}
+
+.sem-btn-ghost,
+.asm-btn-ghost {
+    background: #e2e8f0;
+    color: #1e3a5f;
+}
+
+.sem-btn-ghost:hover:not(:disabled),
+.asm-btn-ghost:hover:not(:disabled) {
+    background: #cbd5e0;
+}
+
+/* ── Responsive: bottom-sheet en móvil ── */
+@media (max-width: 768px) {
+
+    .sem-overlay,
+    .asm-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .sem-modal,
+    .asm-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 20px 20px 0 0;
+        margin: 0;
+    }
+
+    .sem-header,
+    .asm-header {
+        padding: 1rem;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .sem-header h2,
+    .asm-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .sem-body,
+    .asm-body {
+        padding: 1rem;
+    }
+
+    .sem-form-grid,
+    .asm-form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .sem-form-group.full,
+    .asm-form-group.full {
+        grid-column: 1;
+    }
+
+    .sem-avatar-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .sem-actions,
+    .asm-actions {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .sem-btn,
+    .asm-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.85rem;
+    }
+}

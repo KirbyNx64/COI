@@ -1,0 +1,314 @@
+/* =============================================
+   NPM — New Patient Modal (Agregar Nuevo Paciente)
+   Clases únicas para no colisionar con otros modales
+   ============================================= */
+
+.npm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: npmFadeIn 0.15s ease-out;
+}
+
+@keyframes npmFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.npm-modal {
+    background: white;
+    border-radius: 16px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 92vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    animation: npmSlideUp 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes npmSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Header */
+.npm-header {
+    padding: 1.25rem 2rem;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background: white;
+}
+
+.npm-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #1e3a5f;
+    font-weight: 700;
+}
+
+.npm-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1;
+}
+
+.npm-close:hover {
+    color: #1e3a5f;
+    background: #f1f5f9;
+}
+
+/* Cuerpo scrollable */
+.npm-body {
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Banners */
+.npm-info-banner,
+.npm-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    flex-shrink: 0;
+}
+
+.npm-info-banner {
+    background: #f0f7ff;
+    border: 1px solid rgba(44, 82, 130, 0.2);
+    color: #1e3a5f;
+}
+
+.npm-error-banner {
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    color: #991b1b;
+    font-weight: 600;
+}
+
+.npm-info-banner svg,
+.npm-error-banner svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Formulario */
+.npm-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Secciones */
+.npm-section {
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.npm-section h3 {
+    font-size: 1rem;
+    color: #1e3a5f;
+    margin: 0 0 1rem 0;
+    font-weight: 700;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* Grid de campos */
+.npm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.npm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.npm-form-group.full {
+    grid-column: 1 / -1;
+}
+
+.npm-form-group label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.npm-required {
+    color: #ef4444;
+    margin-left: 0.2rem;
+}
+
+.npm-input {
+    width: 100%;
+    padding: 0.7rem 0.875rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: #1e3a5f;
+    background: white;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.npm-input:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
+}
+
+.npm-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Footer de acciones */
+.npm-actions {
+    padding: 1rem 2rem;
+    border-top: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    background: white;
+}
+
+.npm-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.npm-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.npm-btn-primary {
+    background: #2c5282;
+    color: white;
+}
+
+.npm-btn-primary:hover:not(:disabled) {
+    background: #1e3a5f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
+}
+
+.npm-btn-ghost {
+    background: #e2e8f0;
+    color: #1e3a5f;
+}
+
+.npm-btn-ghost:hover:not(:disabled) {
+    background: #cbd5e0;
+}
+
+/* ── Responsive: bottom-sheet en móvil ── */
+@media (max-width: 768px) {
+    .npm-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .npm-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 96vh;
+        border-radius: 20px 20px 0 0;
+        margin: 0;
+    }
+
+    .npm-header {
+        padding: 1rem;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .npm-header h2 {
+        font-size: 1.15rem;
+    }
+
+    .npm-body {
+        padding: 1rem;
+    }
+
+    .npm-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .npm-form-group.full {
+        grid-column: 1;
+    }
+
+    .npm-section {
+        padding: 1rem;
+    }
+
+    .npm-actions {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .npm-btn {
+        width: 100%;
+        text-align: center;
+        padding: 0.85rem;
+    }
+}

@@ -10,7 +10,7 @@ import './EditAppointmentModal.css';
 
 registerLocale('es', es);
 
-function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
+function EditAppointmentModal({ appointment, patientData, onSuccess, onCancel }) {
     const [formData, setFormData] = useState({
         fecha: appointment.date || '',
         hora: appointment.time || '',
@@ -26,24 +26,31 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
     const [loadingHours, setLoadingHours] = useState(false);
     const [showWarningModal, setShowWarningModal] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
-    const [patientDetails, setPatientDetails] = useState(null);
+    const [patientDetails, setPatientDetails] = useState(patientData || null);
 
     const horariosDisponibles = [
         '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM',
         '1:00 PM', '2:00 PM', '3:00 PM'
     ];
 
-    // Load available hours when date changes
+    // Load available hours when date changes.
+    // The initial load is deferred 220ms so the modal opening animation
+    // finishes before the Firestore re-render interrupts the frame.
     useEffect(() => {
+        let timer;
+        let cancelled = false;
+
         const loadAvailableHours = async () => {
             if (formData.fecha) {
-                setLoadingHours(true);
+                if (!cancelled) setLoadingHours(true);
 
                 const { availableSlots, error } = await getAvailableTimeSlots(
                     formData.fecha,
                     formData.clinica,
                     appointment.time // Include current time to allow keeping it
                 );
+
+                if (cancelled) return;
 
                 if (error) {
                     console.error('Error loading available hours:', error);
@@ -57,19 +64,25 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
                     }
                 }
 
-                setLoadingHours(false);
+                if (!cancelled) setLoadingHours(false);
             } else {
-                setAvailableHours(horariosDisponibles);
+                if (!cancelled) setAvailableHours(horariosDisponibles);
             }
         };
 
-        loadAvailableHours();
+        // Defer initial fetch to let the opening animation complete first
+        timer = setTimeout(loadAvailableHours, 220);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
     }, [formData.fecha, formData.clinica, appointment.time]);
 
-    // Load patient details on mount
+    // Load patient details on mount (only if not provided by prop)
     useEffect(() => {
         const loadPatientDetails = async () => {
-            if (appointment.userId) {
+            if (appointment.userId && !patientData) {
                 const { patient, error } = await getPatientById(appointment.userId);
                 if (!error && patient) {
                     setPatientDetails(patient);
@@ -78,7 +91,7 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
         };
 
         loadPatientDetails();
-    }, [appointment.userId]);
+    }, [appointment.userId, patientData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -211,11 +224,11 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
 
     return (
         <>
-            <div className="modal-overlay" onClick={onCancel}>
-                <div className="modal-content edit-appointment-modal" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header">
+            <div className="eam-overlay" onClick={onCancel}>
+                <div className="eam-modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="eam-header">
                         <h2>Editar Cita</h2>
-                        <button className="modal-close" onClick={onCancel}>
+                        <button className="eam-close" onClick={onCancel}>
                             ×
                         </button>
                     </div>
@@ -411,10 +424,10 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
                             </div>
                         )}
 
-                        <div className="modal-actions">
+                        <div className="eam-actions">
                             <button
                                 type="button"
-                                className="btn btn-secondary"
+                                className="eam-btn eam-btn-secondary"
                                 onClick={onCancel}
                                 disabled={isSubmitting}
                             >
@@ -422,12 +435,12 @@ function EditAppointmentModal({ appointment, onSuccess, onCancel }) {
                             </button>
                             <button
                                 type="submit"
-                                className="btn btn-primary btn-submit"
+                                className="eam-btn eam-btn-primary eam-btn-submit"
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
                                     <>
-                                        <span className="spinner"></span>
+                                        <span className="eam-spinner"></span>
                                         Guardando...
                                     </>
                                 ) : (

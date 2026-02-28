@@ -1,6 +1,10 @@
 import React from 'react';
 
-const PatientTable = ({ patients, onViewDetails, currentPage, totalPages, onPageChange }) => {
+const PatientTable = ({
+    patients, onViewDetails,
+    pageNum, hasNext, hasPrev, onNext, onPrev,
+    isDuiMode, totalDuiPages, currentDuiPage, onDuiPageChange
+}) => {
     if (patients.length === 0) {
         return (
             <div className="empty-state">
@@ -43,31 +47,51 @@ const PatientTable = ({ patients, onViewDetails, currentPage, totalPages, onPage
                 </tbody>
             </table>
 
-            {totalPages > 1 && (
+            {/* Cursor pagination for normal listing mode */}
+            {!isDuiMode && (hasPrev || hasNext) && (
                 <div className="p-pagination">
                     <button
-                        onClick={() => onPageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
+                        onClick={onPrev}
+                        disabled={!hasPrev}
                         className="p-pagination-btn"
                     >
                         &laquo; Anterior
                     </button>
+                    <span className="p-pagination-info">Página {pageNum}</span>
+                    <button
+                        onClick={onNext}
+                        disabled={!hasNext}
+                        className="p-pagination-btn"
+                    >
+                        Siguiente &raquo;
+                    </button>
+                </div>
+            )}
 
+            {/* Numbered pagination only for DUI search results */}
+            {isDuiMode && totalDuiPages > 1 && (
+                <div className="p-pagination">
+                    <button
+                        onClick={() => onDuiPageChange(currentDuiPage - 1)}
+                        disabled={currentDuiPage === 1}
+                        className="p-pagination-btn"
+                    >
+                        &laquo; Anterior
+                    </button>
                     <div className="p-pagination-numbers">
-                        {[...Array(totalPages)].map((_, index) => (
+                        {[...Array(totalDuiPages)].map((_, index) => (
                             <button
                                 key={index + 1}
-                                onClick={() => onPageChange(index + 1)}
-                                className={`p-pagination-number ${currentPage === index + 1 ? 'p-active' : ''}`}
+                                onClick={() => onDuiPageChange(index + 1)}
+                                className={`p-pagination-number ${currentDuiPage === index + 1 ? 'p-active' : ''}`}
                             >
                                 {index + 1}
                             </button>
                         ))}
                     </div>
-
                     <button
-                        onClick={() => onPageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
+                        onClick={() => onDuiPageChange(currentDuiPage + 1)}
+                        disabled={currentDuiPage === totalDuiPages}
                         className="p-pagination-btn"
                     >
                         Siguiente &raquo;

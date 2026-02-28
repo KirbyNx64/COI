@@ -1,6 +1,33 @@
 /* Edit Appointment Modal Styles */
 
-.edit-appointment-modal {
+/* Overlay propio del modal de edición */
+.eam-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: eamFadeIn 0.15s ease-out;
+}
+
+@keyframes eamFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Contenedor del modal */
+.eam-modal {
     max-width: 800px;
     width: 100%;
     max-height: 90vh;
@@ -9,12 +36,24 @@
     flex-direction: column;
     background: white;
     border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    animation: eamSlideUp 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes eamSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 
-
-.edit-appointment-modal .modal-header {
+.eam-modal .eam-header {
     padding: 1.5rem 2rem;
     border-bottom: 2px solid #e2e8f0;
     display: flex;
@@ -24,14 +63,14 @@
     flex-shrink: 0;
 }
 
-.edit-appointment-modal .modal-header h2 {
+.eam-modal .eam-header h2 {
     margin: 0;
     font-size: 1.5rem;
     color: #1e3a5f;
     font-weight: 600;
 }
 
-.edit-appointment-modal .modal-close {
+.eam-modal .eam-close {
     background: none;
     border: none;
     font-size: 2rem;
@@ -46,7 +85,7 @@
     transition: color 0.2s;
 }
 
-.edit-appointment-modal .modal-close:hover {
+.eam-modal .eam-close:hover {
     color: #1e3a5f;
 }
 
@@ -132,12 +171,16 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    /* Space between groups */
 }
 
 .edit-appointment-form label {
     font-weight: 600;
-    color: #374151;
+    color: #4a5568;
     font-size: 0.95rem;
+    padding-left: 0.25rem;
+    /* Slight indentation to align with browser behavior */
 }
 
 .edit-appointment-form .required {
@@ -152,7 +195,7 @@
     border-radius: 10px;
     font-size: 1rem;
     font-family: inherit;
-    transition: all 0.3s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
     background: white;
     width: 100%;
 }
@@ -186,7 +229,7 @@
     border-radius: 10px;
     font-size: 1rem;
     font-family: inherit;
-    transition: all 0.3s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
     background: white;
     width: 100%;
     cursor: pointer;
@@ -215,7 +258,7 @@
 }
 
 /* Modal Actions */
-.edit-appointment-modal .modal-actions {
+.eam-modal .eam-actions {
     padding: 1.5rem 2rem;
     border-top: 2px solid #e2e8f0;
     display: flex;
@@ -225,7 +268,7 @@
     flex-shrink: 0;
 }
 
-.edit-appointment-modal .btn {
+.eam-modal .eam-btn {
     padding: 0.75rem 2rem;
     border-radius: 8px;
     font-size: 1rem;
@@ -238,45 +281,45 @@
     gap: 0.5rem;
 }
 
-.edit-appointment-modal .btn svg {
+.eam-modal .eam-btn svg {
     width: 20px;
     height: 20px;
 }
 
-.edit-appointment-modal .btn-secondary {
+.eam-modal .eam-btn-secondary {
     background: #e2e8f0;
     color: #1e3a5f;
 }
 
-.edit-appointment-modal .btn-secondary:hover:not(:disabled) {
+.eam-modal .eam-btn-secondary:hover:not(:disabled) {
     background: #cbd5e0;
 }
 
-.edit-appointment-modal .btn-primary {
+.eam-modal .eam-btn-primary {
     background: #2c5282;
     color: white;
 }
 
-.edit-appointment-modal .btn-primary:hover:not(:disabled) {
+.eam-modal .eam-btn-primary:hover:not(:disabled) {
     background: #1e3a5f;
 }
 
-.edit-appointment-modal .btn:disabled {
+.eam-modal .eam-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
 /* Spinner */
-.edit-appointment-modal .spinner {
+.eam-modal .eam-spinner {
     width: 18px;
     height: 18px;
     border: 3px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: eamSpin 0.8s linear infinite;
 }
 
-@keyframes spin {
+@keyframes eamSpin {
     to {
         transform: rotate(360deg);
     }
@@ -284,39 +327,69 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .edit-appointment-modal {
-        width: 95%;
+    .eam-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .eam-modal {
+        width: 100%;
+        max-width: 100%;
         max-height: 95vh;
-        border-radius: 15px;
+        border-radius: 20px 20px 0 0;
+        margin: 0;
     }
 
-    .edit-appointment-modal .modal-header {
-        padding: 1rem 1.5rem;
-        border-radius: 15px 15px 0 0;
+    .eam-modal .eam-header {
+        padding: 1rem 0.75rem;
     }
 
-    .edit-appointment-modal .modal-header h2 {
+    .eam-modal .eam-header h2 {
         font-size: 1.25rem;
     }
 
     .edit-appointment-form {
-        padding: 1.5rem;
+        padding: 1rem 0.75rem;
+        /* Drastically reduced from 2rem */
+    }
+
+    .edit-appointment-form .form-section {
+        margin-bottom: 1rem;
+    }
+
+    .edit-appointment-form .form-group {
+        margin-bottom: 1rem;
+        /* Consistent spacing on mobile */
     }
 
     .edit-appointment-form .form-row {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
 
     .readonly-grid {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
 
-    .edit-appointment-modal .modal-actions {
-        flex-direction: column-reverse;
+    .readonly-section {
+        padding: 1rem;
     }
 
-    .edit-appointment-modal .btn {
+    .eam-modal .eam-actions {
+        flex-direction: column;
+        padding: 1rem 0.75rem 1.5rem;
+        gap: 0.75rem;
+    }
+
+    .eam-modal .eam-btn {
         width: 100%;
+        justify-content: center;
+        padding: 0.85rem;
+    }
+
+    .eam-modal .eam-btn-submit {
+        order: -1;
     }
 }
 

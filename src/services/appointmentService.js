@@ -25,6 +25,7 @@ export const createAppointment = async (userId, appointmentData) => {
         const appointment = {
             userId,
             patientName: appointmentData.patientName || '',
+            patientDui: appointmentData.patientDui || '',
             date: appointmentData.date || '',
             time: appointmentData.time || '',
             reason: appointmentData.reason || '',
@@ -385,6 +386,119 @@ export const createAppointmentForPatient = async (patientId, appointmentData, st
     } catch (error) {
         console.error('Error creating appointment for patient:', error);
         return { appointmentId: null, error };
+    }
+};
+
+/**
+ * Get all appointments matching a specific DUI (server-side, efficient)
+ * @param {string} dui - Patient's DUI in format ########-#
+ * @returns {Promise<{appointments, error}>}
+ */
+export const getAppointmentsByDui = async (dui) => {
+    try {
+        // Only use where() — no orderBy to avoid needing a composite index
+        const q = query(
+            collection(db, 'appointments'),
+            where('patientDui', '==', dui)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const appointments = [];
+
+        querySnapshot.forEach((doc) => {
+            appointments.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Sort by date descending on the client
+        appointments.sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateB - dateA;
+        });
+
+        return { appointments, error: null };
+    } catch (error) {
+        console.error('Error searching appointments by DUI:', error);
+        return { appointments: [], error };
+    }
+};
+
+/**
+ * Get appointments filtered server-side by status, clinic, and date range.
+ * Text search and assignment filter are applied client-side after fetch.
+ */
+export const getFilteredAppointments = async ({ statusFilter, clinicFilter, dateFilter, doctorId, userType }) => {
+    try {
+        const constraints = [];
+
+        const getLocalDateString = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Doctor filter (non-admin sees only their own)
+        if (userType !== 'admin' && doctorId) {
+            constraints.push(where('doctorId', '==', doctorId));
+        }
+
+        // Status and Clinic are now filtered client-side below to avoid complex index requirements
+
+        // Date filter
+        if (dateFilter === 'today') {
+            constraints.push(where('date', '==', getLocalDateString(today)));
+        } else if (dateFilter === 'yesterday') {
+            const d = new Date(today);
+            d.setDate(d.getDate() - 1);
+            constraints.push(where('date', '==', getLocalDateString(d)));
+        } else if (dateFilter === 'tomorrow') {
+            const d = new Date(today);
+            d.setDate(d.getDate() + 1);
+            constraints.push(where('date', '==', getLocalDateString(d)));
+        } else if (dateFilter === 'week') {
+            const weekFromNow = new Date(today);
+            weekFromNow.setDate(weekFromNow.getDate() + 7);
+            constraints.push(where('date', '>=', getLocalDateString(today)));
+            constraints.push(where('date', '<=', getLocalDateString(weekFromNow)));
+        } else {
+            // Default 'all': limit to last 3 months to avoid downloading everything
+            const threeMonthsAgo = new Date(today);
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            constraints.push(where('date', '>=', getLocalDateString(threeMonthsAgo)));
+        }
+
+        const q = query(collection(db, 'appointments'), ...constraints);
+        const querySnapshot = await getDocs(q);
+        let appointments = [];
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.id === 'placeholder' ? null : { id: doc.id, ...doc.data() };
+            if (data) appointments.push(data);
+        });
+
+        // Apply client-side filters for status and clinic to avoid index requirements
+        if (statusFilter && statusFilter !== 'all') {
+            appointments = appointments.filter(apt => apt.status === statusFilter);
+        }
+        if (clinicFilter && clinicFilter !== 'all') {
+            appointments = appointments.filter(apt => apt.clinica === clinicFilter);
+        }
+
+        // Sort most recent first
+        appointments.sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateB - dateA;
+        });
+
+        return { appointments, error: null };
+    } catch (error) {
+        console.error('Error getting filtered appointments:', error);
+        return { appointments: [], error };
     }
 };
 

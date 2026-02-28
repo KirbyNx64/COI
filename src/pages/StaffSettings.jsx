@@ -221,6 +221,7 @@ const StaffSettings = () => {
                                 <thead>
                                     <tr>
                                         <th>Nombre</th>
+                                        <th>Cargo</th>
                                         <th>Email</th>
                                         <th>Rol</th>
                                         <th>Acciones</th>
@@ -238,10 +239,17 @@ const StaffSettings = () => {
                                                             <span>{member.nombres.charAt(0)}</span>
                                                         )}
                                                     </div>
-                                                    <span>{member.nombres} {member.apellidos}</span>
+                                                    <div className="member-info">
+                                                        <span className="name">{member.nombres} {member.apellidos}</span>
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td data-label="Email">{member.email}</td>
+                                            <td data-label="Cargo">
+                                                <span className="member-cargo">{member.cargo || 'No especificado'}</span>
+                                            </td>
+                                            <td data-label="Email">
+                                                <span className="member-email">{member.email}</span>
+                                            </td>
                                             <td data-label="Rol">
                                                 <span className={`role-badge ${member.role}`}>
                                                     {member.role === 'admin' ? 'Administrador' : 'Médico'}

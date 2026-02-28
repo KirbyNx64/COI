@@ -19,50 +19,47 @@ import * as XLSX from 'xlsx';
  */
 export const getAppointmentsByDateRange = async (startDate, endDate, filters = {}) => {
     try {
-        const appointmentsRef = collection(db, 'appointments');
-        const querySnapshot = await getDocs(appointmentsRef);
+        const constraints = [];
+
+        // Date range — server-side
+        if (startDate && endDate) {
+            constraints.push(where('date', '>=', startDate));
+            constraints.push(where('date', '<=', endDate));
+        }
+
+        // Status filter — server-side
+        if (filters.status && filters.status !== 'all') {
+            constraints.push(where('status', '==', filters.status));
+        }
+
+        // Clinic filter — server-side
+        if (filters.clinic && filters.clinic !== 'all') {
+            constraints.push(where('clinica', '==', filters.clinic));
+        }
+
+        const q = query(collection(db, 'appointments'), ...constraints);
+        const querySnapshot = await getDocs(q);
 
         let appointments = [];
-
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            appointments.push({
-                id: doc.id,
-                ...data
-            });
+            appointments.push({ id: doc.id, ...data });
         });
 
-        // Filter by date range
-        if (startDate && endDate) {
-            appointments = appointments.filter(apt => {
-                return apt.date >= startDate && apt.date <= endDate;
-            });
-        }
-
-        // Filter by status
-        if (filters.status && filters.status !== 'all') {
-            appointments = appointments.filter(apt => apt.status === filters.status);
-        }
-
-        // Filter by clinic
-        if (filters.clinic && filters.clinic !== 'all') {
-            appointments = appointments.filter(apt => apt.clinica === filters.clinic);
-        }
-
-        // Filter by search term (patient name or reason)
+        // Text search — client-side (Firestore doesn't support partial text search)
         if (filters.searchTerm && filters.searchTerm.trim() !== '') {
-            const searchLower = filters.searchTerm.toLowerCase();
+            const searchLower = filters.searchTerm.toLowerCase().replace(/-/g, '');
             appointments = appointments.filter(apt => {
                 const patientName = (apt.patientName || '').toLowerCase();
                 const reason = (apt.reason || '').toLowerCase();
-                const dui = (apt.patientDui || apt.dui || '').toLowerCase();
+                const dui = (apt.patientDui || apt.dui || '').toLowerCase().replace(/-/g, '');
                 return patientName.includes(searchLower) ||
                     reason.includes(searchLower) ||
                     dui.includes(searchLower);
             });
         }
 
-        // Sort by date and time (most recent first)
+        // Sort by date descending — client-side (avoids composite index requirement)
         appointments.sort((a, b) => {
             const dateA = new Date(`${a.date} ${a.time}`);
             const dateB = new Date(`${b.date} ${b.time}`);

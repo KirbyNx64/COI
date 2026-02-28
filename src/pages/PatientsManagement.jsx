@@ -1,5 +1,5 @@
-import { useEffect, useReducer, useMemo } from 'react';
-import { getAllPatients, updatePatientData, createPatientWithTempPassword, getPatientHistory } from '../services/staffService';
+import { useEffect, useReducer, useMemo, useState } from 'react';
+import { updatePatientData, createPatientWithTempPassword, getPatientHistory, getPatientsByDui, getPatientsPaginated, getAllPatients } from '../services/staffService';
 import StaffAppointmentForm from '../components/StaffAppointmentForm';
 import PatientTable from '../components/Patients/PatientTable';
 import PatientDetailModal from '../components/Patients/PatientDetailModal';
@@ -156,52 +156,98 @@ const PatientsManagement = () => {
         showHistoryModal, patientHistory, isLoadingHistory
     } = state;
 
+    // DUI search state
+    const [duiInput, setDuiInput] = useState('');
+    const [isDuiMode, setIsDuiMode] = useState(false);
+    const [duiResults, setDuiResults] = useState([]);
+    const [isDuiLoading, setIsDuiLoading] = useState(false);
+
+    // Cursor-based pagination state
+    const [pagePatients, setPagePatients] = useState([]);  // current page records
+    const [pageNum, setPageNum] = useState(1);
+    const [firstDocCursor, setFirstDocCursor] = useState(null);
+    const [lastDocCursor, setLastDocCursor] = useState(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [isPagLoading, setIsPagLoading] = useState(false);
+    const patientsPerPage = 10;
+
+    // DUI format: ########-#
+    const isDuiFormat = (text) => /^\d{8}-\d$/.test(text.trim());
+
     useEffect(() => {
-        loadPatients();
+        loadPage();
     }, []);
 
-    const loadPatients = async () => {
-        try {
-            const { patients, error } = await getAllPatients();
-            if (patients) {
-                dispatch({ type: 'SET_PATIENTS', payload: patients });
-            } else {
-                console.error('Error fetching patients:', error);
-                dispatch({ type: 'SET_PATIENTS', payload: [] });
-            }
-        } catch (err) {
-            console.error('Fatal error loading patients:', err);
-            dispatch({ type: 'SET_PATIENTS', payload: [] });
+    const loadPage = async (direction = 'next', cursorDoc = null, firstDoc = null) => {
+        setIsPagLoading(true);
+        dispatch({ type: 'SET_PATIENTS', payload: [] }); // clear while loading
+        const { patients: data, firstDoc: fd, lastDoc: ld, hasMore: more, error } = await getPatientsPaginated(
+            patientsPerPage, cursorDoc, direction, firstDoc
+        );
+        setIsPagLoading(false);
+        if (!error) {
+            setPagePatients(data);
+            setFirstDocCursor(fd);
+            setLastDocCursor(ld);
+            setHasMore(more);
+        } else {
+            console.error('Error loading paginated patients:', error);
         }
     };
 
-    const filteredPatients = useMemo(() => {
-        return patients.filter(patient => {
-            const fullName = `${patient.nombres || ''} ${patient.apellidos || ''}`.toLowerCase();
-            const email = (patient.email || '').toLowerCase();
-            const dui = (patient.dui || '').toLowerCase();
-            const search = searchTerm.toLowerCase();
-
-            return fullName.includes(search) ||
-                email.includes(search) ||
-                dui.includes(search);
-        });
-    }, [patients, searchTerm]);
-
-    // Pagination constants
-    const patientsPerPage = 8;
-    const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
-    const indexOfLastPatient = currentPage * patientsPerPage;
-    const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
-    const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
-
-    const handleSearchChange = (e) => {
-        dispatch({ type: 'SET_SEARCH', payload: e.target.value });
+    const handleNextPage = () => {
+        if (!hasMore) return;
+        setPageNum(p => p + 1);
+        loadPage('next', lastDocCursor, null);
     };
 
-    const handlePageChange = (pageNumber) => {
-        dispatch({ type: 'SET_PAGE', payload: pageNumber });
+    const handlePrevPage = () => {
+        if (pageNum <= 1) return;
+        setPageNum(p => p - 1);
+        loadPage('prev', null, firstDocCursor);
     };
+
+    // Also keep getAllPatients for refreshing after create/edit
+    const loadPatients = async () => {
+        loadPage();
+        setPageNum(1);
+    };
+
+    // Auto-format DUI input: ########-#  (max 10 chars)
+    const formatDuiInput = (value) => {
+        const digits = value.replace(/\D/g, '').slice(0, 9);
+        if (digits.length > 8) {
+            return `${digits.slice(0, 8)}-${digits.slice(8)}`;
+        }
+        return digits;
+    };
+
+    const handleDuiSearch = async () => {
+        const trimmed = duiInput.trim();
+        setIsDuiLoading(true);
+        const { patients: results, error } = await getPatientsByDui(trimmed);
+        setIsDuiLoading(false);
+        if (!error) {
+            setDuiResults(results);
+            setIsDuiMode(true);
+        }
+    };
+
+    const handleDuiInputChange = (e) => {
+        const formatted = formatDuiInput(e.target.value);
+        setDuiInput(formatted);
+        if (!formatted) {
+            setIsDuiMode(false);
+            setDuiResults([]);
+        }
+    };
+
+    // Displayed patients: DUI results or current page
+    const displayedPatients = isDuiMode ? duiResults : pagePatients;
+    const totalPages = isDuiMode ? Math.ceil(duiResults.length / patientsPerPage) : null;
+    const currentPatients = isDuiMode
+        ? duiResults.slice((state.currentPage - 1) * patientsPerPage, state.currentPage * patientsPerPage)
+        : pagePatients; // already the right page from Firestore
 
     const handleViewDetails = (patient) => {
         dispatch({ type: 'OPEN_DETAIL', payload: patient });
@@ -320,15 +366,33 @@ const PatientsManagement = () => {
                     </div>
                     <input
                         type="text"
-                        className="search-input"
-                        placeholder="Buscar por nombre, email, DUI o teléfono..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
+                        className={`search-input ${isDuiMode ? 'dui-search-active' : ''}`}
+                        placeholder="Buscar por DUI"
+                        value={duiInput}
+                        onChange={handleDuiInputChange}
+                        onKeyDown={(e) => e.key === 'Enter' && handleDuiSearch()}
                     />
-                </div>
-
-                <div className="patients-count">
-                    {filteredPatients.length} pacientes
+                    {duiInput && (
+                        <button
+                            className="dui-clear-btn"
+                            onClick={() => {
+                                setDuiInput('');
+                                setIsDuiMode(false);
+                                setDuiResults([]);
+                            }}
+                            title="Limpiar búsqueda"
+                        >
+                            ✕
+                        </button>
+                    )}
+                    <button
+                        className="dui-search-btn"
+                        onClick={handleDuiSearch}
+                        disabled={isDuiLoading}
+                        title="Buscar paciente por DUI"
+                    >
+                        {isDuiLoading ? '...' : 'Buscar DUI'}
+                    </button>
                 </div>
 
                 <button
@@ -345,7 +409,7 @@ const PatientsManagement = () => {
                 </button>
             </div>
 
-            {isLoading ? (
+            {(isLoading || isPagLoading) ? (
                 <div className="loading-state">
                     <div className="spinner"></div>
                     <p>Cargando pacientes...</p>
@@ -354,9 +418,15 @@ const PatientsManagement = () => {
                 <PatientTable
                     patients={currentPatients}
                     onViewDetails={handleViewDetails}
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={handlePageChange}
+                    pageNum={pageNum}
+                    hasNext={!isDuiMode && hasMore}
+                    hasPrev={!isDuiMode && pageNum > 1}
+                    onNext={handleNextPage}
+                    onPrev={handlePrevPage}
+                    isDuiMode={isDuiMode}
+                    totalDuiPages={totalPages}
+                    currentDuiPage={currentPage}
+                    onDuiPageChange={(n) => dispatch({ type: 'SET_PAGE', payload: n })}
                 />
             )}
 
@@ -407,16 +477,18 @@ const PatientsManagement = () => {
                 submessage="Se ha enviado un correo electrónico al paciente para que establezca su contraseña."
             />
 
-            {/* Appointment Modal remaining as it uses StaffAppointmentForm directly */}
+            {/* Appointment Modal — Programar Cita */}
             {showAppointmentModal && selectedPatientForAppointment && (
-                <div className="modal-overlay" onClick={() => dispatch({ type: 'CLOSE_APPOINTMENT' })}>
-                    <div className="modal-content appointment-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <div className="header-text">
+                <div className="scm-overlay" onClick={() => dispatch({ type: 'CLOSE_APPOINTMENT' })}>
+                    <div className="scm-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="scm-header">
+                            <div className="scm-header-text">
                                 <h2>Programar Cita</h2>
-                                <span className="patient-subtitle">{selectedPatientForAppointment.nombres} {selectedPatientForAppointment.apellidos}</span>
+                                <span className="scm-patient-subtitle">
+                                    {selectedPatientForAppointment.nombres} {selectedPatientForAppointment.apellidos}
+                                </span>
                             </div>
-                            <button className="modal-close" onClick={() => dispatch({ type: 'CLOSE_APPOINTMENT' })}>
+                            <button className="scm-close" onClick={() => dispatch({ type: 'CLOSE_APPOINTMENT' })}>
                                 ×
                             </button>
                         </div>
@@ -428,6 +500,7 @@ const PatientsManagement = () => {
                     </div>
                 </div>
             )}
+
         </div>
     );
 };
