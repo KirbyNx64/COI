@@ -138,3 +138,54 @@
     background: #e2e8f0;
     color: #475569;
 }
+
+/* ── Responsive: bottom-sheet en móvil ── */
+@media (max-width: 768px) {
+    .confirmation-overlay {
+        padding: 0;
+        padding-top: env(safe-area-inset-top, 40px);
+        align-items: flex-end;
+    }
+
+    .confirmation-modal {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        margin: 0;
+        padding: 1.5rem;
+        animation: confirmationSlideUp 0.18s ease-out;
+        text-align: left;
+    }
+
+    @keyframes confirmationSlideUp {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    .confirmation-header {
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .confirmation-body p {
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+    }
+
+    .confirmation-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .confirm-btn,
+    .cancel-btn {
+        width: 100%;
+        padding: 0.85rem;
+        flex: none;
+    }
+}

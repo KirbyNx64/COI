@@ -57,6 +57,7 @@ function Contact() {
             <div className="container">
                 <div className="contact-header">
                     <h1>Nuestras Ubicaciones</h1>
+                    <div className="contact-header-line"></div>
                     <p>Encuentra la clínica más cercana a ti. Estamos para servirte en múltiples ubicaciones.</p>
                 </div>
 

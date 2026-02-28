@@ -781,13 +781,14 @@
 @media (max-width: 768px) {
     .dam-overlay {
         padding: 0;
+        padding-top: env(safe-area-inset-top, 40px);
         align-items: flex-end;
     }
 
     .dam-modal {
         width: 100%;
         max-width: 100%;
-        max-height: 95vh;
+        max-height: 90vh;
         border-radius: 20px 20px 0 0;
         margin: 0;
     }
@@ -1582,6 +1583,7 @@
 @media (max-width: 768px) {
     .adm-overlay {
         padding: 0;
+        padding-top: env(safe-area-inset-top, 40px);
         align-items: flex-end;
     }
 

@@ -100,6 +100,17 @@ function Home() {
         return labels[clinica] || clinica;
     };
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString + 'T00:00:00');
+        return date.toLocaleDateString('es-ES', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    };
+
     const confirmCancellation = async () => {
         if (!appointmentToCancel) return;
         const { error } = await updateAppointmentStatus(appointmentToCancel, 'cancelada');
@@ -119,12 +130,12 @@ function Home() {
     const nextAppointment = scheduledAppointments[0];
 
     return (
-        <div className="home-page">
+        <div className="hmp-page">
             <div className="container">
-                <section className="my-appointments-section">
-                    <div className="section-header">
-                        <h2 className="section-title">Próxima Cita</h2>
-                        <Link to="/mis-citas" className="view-more-button">
+                <section className="hmp-appointments-section">
+                    <div className="hmp-header">
+                        <h2 className="hmp-title">Próxima Cita</h2>
+                        <Link to="/mis-citas" className="hmp-view-all">
                             Ver todas
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -134,16 +145,16 @@ function Home() {
                     </div>
 
                     {isLoading ? (
-                        <div className="loading-state-container">
-                            <div className="spinner"></div>
+                        <div className="hmp-loading">
+                            <div className="hmp-spinner"></div>
                             <p>Cargando citas...</p>
                         </div>
                     ) : nextAppointment ? (
-                        <div className="appointments-grid">
-                            <div className="appointment-card">
-                                <div className="appointment-header">
-                                    <div className="appointment-header-left">
-                                        <div className="appointment-icon">
+                        <div className="hmp-grid">
+                            <div className="hmp-card">
+                                <div className="hmp-card-header">
+                                    <div className="hmp-card-header-left">
+                                        <div className="hmp-card-icon">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                                                 <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -152,50 +163,49 @@ function Home() {
                                             </svg>
                                         </div>
                                         <button
-                                            className="download-receipt-btn"
+                                            className="hmp-download-btn"
                                             onClick={() => handleDownloadReceipt(nextAppointment)}
                                             title="Descargar comprobante"
-                                            aria-label="Descargar comprobante en PDF"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <path d="M12 15L12 3M12 15L8 11M12 15L16 11M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17"></path>
                                             </svg>
                                         </button>
                                     </div>
-                                    <span className={`appointment-status status-${nextAppointment.status}`}>
+                                    <span className={`hmp-status hmp-status-${nextAppointment.status}`}>
                                         {getStatusLabel(nextAppointment.status)}
                                     </span>
                                 </div>
-                                <div className="appointment-details">
+                                <div className="hmp-card-details">
                                     <h3>Paciente: {nextAppointment.patientName || 'Usuario'}</h3>
-                                    <div className="appointment-info">
-                                        <div className="info-item">
+                                    <div className="hmp-info-box">
+                                        <div className="hmp-info-item">
                                             <CalendarIcon />
-                                            <span>{nextAppointment.date}</span>
+                                            <span>{formatDate(nextAppointment.date)}</span>
                                         </div>
-                                        <div className="info-item">
+                                        <div className="hmp-info-item">
                                             <ClockIcon />
                                             <span>{nextAppointment.time}</span>
                                         </div>
                                     </div>
                                     <DetailRow label="Motivo" value={nextAppointment.reason} />
                                     <DetailRow label="Clínica" value={getClinicaLabel(nextAppointment.clinica)} />
-                                    {nextAppointment.notas?.trim() && <DetailRow label="Notas" value={nextAppointment.notas} className="appointment-notes" />}
+                                    {nextAppointment.notas?.trim() && <DetailRow label="Notas" value={nextAppointment.notas} className="hmp-notes" />}
 
                                     <DoctorNotes notes={nextAppointment.notasMedico} />
                                     <PrescriptionBox recipe={nextAppointment.recetaMedica} />
                                 </div>
 
-                                <div className="appointment-actions">
+                                <div className="hmp-card-actions">
                                     <button
-                                        className="btn-action btn-edit"
+                                        className="hmp-btn hmp-btn-primary"
                                         onClick={() => navigate('/cita', { state: { editingAppointment: nextAppointment } })}
                                     >
                                         <EditIcon />
                                         Editar
                                     </button>
                                     <button
-                                        className="btn-action btn-cancel"
+                                        className="hmp-btn hmp-btn-danger"
                                         onClick={() => dispatch({ type: 'TOGGLE_CANCEL_MODAL', isOpen: true, appointmentId: nextAppointment.id })}
                                     >
                                         <CancelIcon />
@@ -216,7 +226,7 @@ function Home() {
                     buttonLabel={allAppointments.some(app => app.recetaMedica) ? "Ver Receta Actual" : "No hay recetas disponibles"}
                     buttonDisabled={!allAppointments.some(app => app.recetaMedica)}
                     onClick={() => dispatch({ type: 'TOGGLE_PRESCRIPTION_MODAL', payload: true })}
-                    variant="prescriptions"
+                    variant="presc"
                 />
 
                 <SectionCard
@@ -255,35 +265,35 @@ function Home() {
 
 // Internal Small Components
 const DetailRow = ({ label, value, className = "" }) => value ? (
-    <p className={`appointment-reason ${className}`}>
+    <p className={`hmp-row ${className}`}>
         <strong>{label}:</strong> {value}
     </p>
 ) : null;
 
 const DoctorNotes = ({ notes }) => notes?.trim() ? (
-    <div className="appointment-doctor-notes">
+    <div className="hmp-doctor-notes">
         <strong>Notas del Médico:</strong>
         <p>{notes}</p>
     </div>
 ) : null;
 
 const PrescriptionBox = ({ recipe }) => recipe?.trim() ? (
-    <div className="appointment-prescription">
+    <div className="hmp-prescription">
         <strong>Receta Médica:</strong>
         <pre>{recipe}</pre>
     </div>
 ) : null;
 
 const SectionCard = ({ title, icon, description, buttonLabel, onClick, buttonDisabled, variant }) => (
-    <section className={`${variant}-section`}>
-        <h2 className="section-title">{title}</h2>
-        <div className={`content-card ${variant}-card-new`}>
-            <div className={`card-icon icon-${variant}-new`}>{icon}</div>
-            <div className="card-content">
-                <h3>{variant === 'prescriptions' ? 'Tus Recetas Médicas' : 'Tu Historial Médico'}</h3>
+    <section className={`hmp-${variant}-section`}>
+        <h2 className="hmp-title">{title}</h2>
+        <div className={`hmp-menu-card hmp-menu-card-${variant}`}>
+            <div className={`hmp-menu-icon hmp-menu-icon-${variant}`}>{icon}</div>
+            <div className="hmp-menu-content">
+                <h3>{variant === 'presc' ? 'Tus Recetas Médicas' : 'Tu Historial Médico'}</h3>
                 <p>{description}</p>
                 <button
-                    className={buttonDisabled ? "secondary-button" : "cta-button"}
+                    className={buttonDisabled ? "hmp-btn-secondary" : "hmp-btn-cta"}
                     onClick={onClick}
                     disabled={buttonDisabled}
                 >
@@ -295,11 +305,11 @@ const SectionCard = ({ title, icon, description, buttonLabel, onClick, buttonDis
 );
 
 const EmptyState = () => (
-    <div className="empty-state-card-new">
-        <div className="empty-icon-box-new"><CalendarIcon size={48} /></div>
+    <div className="hmp-empty-card">
+        <div className="hmp-empty-icon"><CalendarIcon size={48} /></div>
         <h3>No tienes citas programadas</h3>
         <p>Agenda tu próxima cita con nosotros</p>
-        <Link to="/cita" className="cta-button-primary-new">Agendar Cita</Link>
+        <Link to="/cita" className="hmp-btn-cta hmp-btn-primary-large">Agendar Cita</Link>
     </div>
 );
 
