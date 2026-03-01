@@ -21,6 +21,7 @@ import StaffAppointments from './pages/StaffAppointments';
 import StaffReports from './pages/StaffReports';
 import StaffProfile from './pages/StaffProfile';
 import StaffSettings from './pages/StaffSettings';
+import EmailVerified from './pages/EmailVerified';
 import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
@@ -173,6 +174,9 @@ function AppContent({ isAuthenticated, userType, userData, handleLogin, handleLo
               <Route path="/cita-confirmada" element={<AppointmentConfirmation />} />
             </>
           )}
+
+          {/* Email Verified - public route for Firebase email verification redirect */}
+          <Route path="/correo-verificado" element={<EmailVerified />} />
 
           {/* Catch-all redirect */}
           <Route

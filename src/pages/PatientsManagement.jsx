@@ -318,13 +318,29 @@ const PatientsManagement = () => {
         dispatch({ type: 'CLOSE_APPOINTMENT' });
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+    const formatDate = (value) => {
+        if (!value) return 'N/A';
         try {
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString('es-ES', options);
+            let date;
+            if (value?.toDate) {
+                // Firestore Timestamp
+                date = value.toDate();
+            } else if (value instanceof Date) {
+                date = value;
+            } else {
+                const str = String(value);
+                if (str.includes('T')) {
+                    // ISO datetime string (e.g. "2025-12-02T18:30:55.549Z") — parse normally
+                    date = new Date(str);
+                } else {
+                    // Plain "YYYY-MM-DD" date string — parse manually to avoid UTC offset
+                    const [year, month, day] = str.split('-');
+                    date = new Date(Number(year), Number(month) - 1, Number(day));
+                }
+            }
+            return date.toLocaleDateString('es-SV', { year: 'numeric', month: 'long', day: 'numeric' });
         } catch (e) {
-            return dateString;
+            return String(value);
         }
     };
 
