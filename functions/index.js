@@ -1,4 +1,4 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -51,6 +51,23 @@ function formatDate(dateStr) {
     month: "long",
     day: "numeric",
   });
+}
+
+function getChangedAppointmentFields(before, after) {
+  const fieldsToWatch = ["date", "time", "clinica", "reason", "notas"];
+  return fieldsToWatch.filter((field) => (before[field] || "") !== (after[field] || ""));
+}
+
+async function getUserEmailByUid(userId) {
+  if (!userId) return null;
+
+  try {
+    const userRecord = await admin.auth().getUser(userId);
+    return userRecord.email || null;
+  } catch (err) {
+    console.error("Error fetching user email:", err);
+    return null;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -321,6 +338,190 @@ Clínica Dental Dr. César Vásquez
       console.log(`Confirmation email sent to ${userEmail} for appointment ${appointmentId}`);
     } catch (emailErr) {
       console.error("Error sending confirmation email:", emailErr);
+    }
+
+    return null;
+  }
+);
+
+exports.sendAppointmentUpdateEmail = onDocumentUpdated(
+  {
+    document: "appointments/{appointmentId}",
+    secrets: ["EMAIL_USER", "EMAIL_PASS"],
+  },
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const appointmentId = event.params.appointmentId;
+
+    if (!before || !after) {
+      console.log("Missing appointment data in update event.");
+      return null;
+    }
+
+    const statusChanged = before.status !== after.status;
+    const changedFields = getChangedAppointmentFields(before, after);
+    const isCancellation = statusChanged && after.status === "cancelada";
+    const isEditedAppointment = changedFields.length > 0 && !isCancellation;
+
+    if (!isCancellation && !isEditedAppointment) {
+      console.log(`Appointment ${appointmentId} updated without relevant changes, skipping email.`);
+      return null;
+    }
+
+    const userEmail = await getUserEmailByUid(after.userId || before.userId);
+    if (!userEmail) {
+      console.log(`User ${(after.userId || before.userId)} has no email address, skipping.`);
+      return null;
+    }
+
+    const clinicaLabel = getClinicaLabel(after.clinica);
+    const formattedDate = formatDate(after.date);
+    const patientFirstName = (after.patientName || before.patientName || "Paciente").split(" ")[0];
+    const transporter = createTransporter();
+
+    let subject = "";
+    let textBody = "";
+    let htmlBody = "";
+
+    if (isCancellation) {
+      subject = `Cita Cancelada - ${formattedDate} a las ${after.time}`;
+      textBody = `
+Hola ${patientFirstName},
+
+Tu cita del ${formattedDate} a las ${after.time} en la clínica ${clinicaLabel} ha sido cancelada.
+
+Si deseas, puedes agendar una nueva cita desde: https://coi-dr-cv.web.app/cita
+
+Clínica Dental Dr. César Vásquez
+(Este correo fue enviado automáticamente por el sistema.)
+      `.trim();
+
+      htmlBody = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cita Cancelada</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7f6;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f7f6;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;">
+          <tr>
+            <td style="background:#b91c1c;padding:24px 20px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Clínica Dr. César Vásquez</h1>
+              <p style="margin:8px 0 0;color:#fee2e2;font-size:14px;">Notificación de cita cancelada</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 28px 12px;color:#1f2937;">
+              <p style="margin:0 0 12px;font-size:16px;">Hola, <strong>${patientFirstName}</strong>.</p>
+              <p style="margin:0;font-size:15px;line-height:1.6;">Tu cita del <strong>${formattedDate}</strong> a las <strong>${after.time}</strong> en <strong>${clinicaLabel}</strong> ha sido cancelada.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 28px 30px;text-align:center;">
+              <a href="https://coi-dr-cv.web.app/cita" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:4px;font-size:14px;font-weight:600;">Agendar Nueva Cita</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `;
+    } else {
+      const fieldLabels = {
+        date: "fecha",
+        time: "hora",
+        clinica: "clínica",
+        reason: "motivo",
+        notas: "notas",
+      };
+
+      const changedFieldsText = changedFields.map((field) => fieldLabels[field] || field).join(", ");
+      subject = `Cita Reprogramada/Actualizada - ${formattedDate} a las ${after.time}`;
+      textBody = `
+Hola ${patientFirstName},
+
+Tu cita ha sido actualizada. Campos modificados: ${changedFieldsText}.
+
+Nuevos detalles:
+- Fecha: ${formattedDate}
+- Hora: ${after.time}
+- Clínica: ${clinicaLabel}
+- Motivo: ${after.reason || "No especificado"}
+${after.notas ? `- Notas: ${after.notas}` : ""}
+
+Puedes revisar tus citas en: https://coi-dr-cv.web.app/mis-citas
+
+Clínica Dental Dr. César Vásquez
+(Este correo fue enviado automáticamente por el sistema.)
+      `.trim();
+
+      htmlBody = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cita Actualizada</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7f6;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f7f6;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;">
+          <tr>
+            <td style="background:#1d4ed8;padding:24px 20px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Clínica Dr. César Vásquez</h1>
+              <p style="margin:8px 0 0;color:#dbeafe;font-size:14px;">Notificación de cambios en tu cita</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;color:#1f2937;">
+              <p style="margin:0 0 12px;font-size:16px;">Hola, <strong>${patientFirstName}</strong>.</p>
+              <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">Tu cita fue actualizada. <strong>Cambios:</strong> ${changedFieldsText}.</p>
+              <p style="margin:0;font-size:15px;line-height:1.7;">
+                <strong>Fecha:</strong> ${formattedDate}<br/>
+                <strong>Hora:</strong> ${after.time}<br/>
+                <strong>Clínica:</strong> ${clinicaLabel}<br/>
+                <strong>Motivo:</strong> ${after.reason || "No especificado"}
+                ${after.notas ? `<br/><strong>Notas:</strong> ${after.notas}` : ""}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 30px;text-align:center;">
+              <a href="https://coi-dr-cv.web.app/mis-citas" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:4px;font-size:14px;font-weight:600;">Ver Mis Citas</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `;
+    }
+
+    const mailOptions = {
+      from: `"Clínica Dr. César Vásquez" <${process.env.EMAIL_USER}>`,
+      to: userEmail,
+      subject,
+      text: textBody,
+      html: htmlBody,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`Update email sent to ${userEmail} for appointment ${appointmentId}`);
+    } catch (emailErr) {
+      console.error("Error sending update email:", emailErr);
     }
 
     return null;
