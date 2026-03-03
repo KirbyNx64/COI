@@ -3,6 +3,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+const twilio = require("twilio");
 
 admin.initializeApp();
 
@@ -74,10 +75,47 @@ async function getUserEmailByUid(userId) {
 // ──────────────────────────────────────────────────────────────
 // Cloud Function: se dispara al crear un documento en /appointments/{appointmentId}
 // ──────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
+// Helper: enviar WhatsApp a la secretaria vía Twilio
+// Configura los secrets con:
+//   firebase functions:secrets:set TWILIO_ACCOUNT_SID
+//   firebase functions:secrets:set TWILIO_AUTH_TOKEN
+//   firebase functions:secrets:set TWILIO_WHATSAPP_FROM   (ej: whatsapp:+14155238886)
+//   firebase functions:secrets:set SECRETARY_WHATSAPP_TO  (ej: whatsapp:+50374396857)
+// ──────────────────────────────────────────────────────────────
+async function sendSecretaryWhatsApp({ patientName, date, time, clinica }) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_WHATSAPP_FROM;
+  const toNumber = process.env.SECRETARY_WHATSAPP_TO;
+
+  if (!accountSid || !authToken || !fromNumber || !toNumber) {
+    console.warn("Twilio secrets not configured — skipping WhatsApp notification.");
+    return;
+  }
+
+  const client = twilio(accountSid, authToken);
+  const clinicaLabel = getClinicaLabel(clinica);
+  const formattedDate = formatDate(date);
+
+  const messageBody =
+    `📅 *Nueva cita agendada*\n\n` +
+    `👤 Paciente: ${patientName || "No especificado"}\n` +
+    `📆 Fecha: ${formattedDate}\n` +
+    `🕐 Hora: ${time}\n` +
+    `🏥 Clínica: ${clinicaLabel}`;
+
+  await client.messages.create({
+    from: fromNumber,
+    to: toNumber,
+    body: messageBody,
+  });
+}
+
 exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   {
     document: "appointments/{appointmentId}",
-    secrets: ["EMAIL_USER", "EMAIL_PASS"],
+    secrets: ["EMAIL_USER", "EMAIL_PASS", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM", "SECRETARY_WHATSAPP_TO"],
   },
   async (event) => {
     const appointment = event.data.data();
@@ -339,6 +377,19 @@ Clínica Dental Dr. César Vásquez
       console.log(`Confirmation email sent to ${userEmail} for appointment ${appointmentId}`);
     } catch (emailErr) {
       console.error("Error sending confirmation email:", emailErr);
+    }
+
+    // ── Notificación WhatsApp a la secretaria ────────────────────
+    try {
+      await sendSecretaryWhatsApp({
+        patientName,
+        date,
+        time,
+        clinica,
+      });
+      console.log(`WhatsApp notification sent to secretary for appointment ${appointmentId}`);
+    } catch (waErr) {
+      console.error("Error sending WhatsApp to secretary:", waErr);
     }
 
     return null;
