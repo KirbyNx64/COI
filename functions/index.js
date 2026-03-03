@@ -4,6 +4,7 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const twilio = require("twilio");
+const { google } = require("googleapis");
 
 admin.initializeApp();
 
@@ -83,7 +84,7 @@ async function getUserEmailByUid(userId) {
 //   firebase functions:secrets:set TWILIO_WHATSAPP_FROM   (ej: whatsapp:+14155238886)
 //   firebase functions:secrets:set SECRETARY_WHATSAPP_TO  (ej: whatsapp:+50374396857)
 // ──────────────────────────────────────────────────────────────
-async function sendSecretaryWhatsApp({ patientName, date, time, clinica }) {
+async function sendSecretaryWhatsApp({ patientName, patientDui, date, time, clinica }) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_WHATSAPP_FROM;
@@ -101,6 +102,7 @@ async function sendSecretaryWhatsApp({ patientName, date, time, clinica }) {
   const messageBody =
     `📅 *Nueva cita agendada*\n\n` +
     `👤 Paciente: ${patientName || "No especificado"}\n` +
+    `🪪 DUI: ${patientDui || "No especificado"}\n` +
     `📆 Fecha: ${formattedDate}\n` +
     `🕐 Hora: ${time}\n` +
     `🏥 Clínica: ${clinicaLabel}`;
@@ -112,10 +114,134 @@ async function sendSecretaryWhatsApp({ patientName, date, time, clinica }) {
   });
 }
 
+// ──────────────────────────────────────────────────────────────
+// Helpers: Google Calendar vía Service Account
+// Configura los secrets con:
+//   firebase functions:secrets:set GOOGLE_SERVICE_ACCOUNT_JSON
+//   firebase functions:secrets:set GOOGLE_CALENDAR_ID
+// Comparte tu calendario con: calendar-bot@coi-dr-cv.iam.gserviceaccount.com (editor)
+// ──────────────────────────────────────────────────────────────
+function getCalendarAuth() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return null;
+  const sa = JSON.parse(raw);
+  return new google.auth.JWT({
+    email: sa.client_email,
+    key: sa.private_key,
+    scopes: ["https://www.googleapis.com/auth/calendar"],
+  });
+}
+
+function parseAppointmentTime(date, time) {
+  // time format: "8:00 AM", "2:00 PM", etc.
+  const m = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return null;
+  let hours = parseInt(m[1]);
+  const minutes = parseInt(m[2]);
+  const period = m[3].toUpperCase();
+  if (period === "PM" && hours !== 12) hours += 12;
+  if (period === "AM" && hours === 12) hours = 0;
+  const [year, month, day] = date.split("-").map(Number);
+  const pad = (n) => String(n).padStart(2, "0");
+  const start = `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00`;
+  const endH = hours + 1 < 24 ? hours + 1 : 0;
+  const end = `${year}-${pad(month)}-${pad(day)}T${pad(endH)}:${pad(minutes)}:00`;
+  return { start, end };
+}
+
+async function createCalendarEvent({ appointmentId, patientName, patientDui, date, time, clinica, reason, notas }) {
+  const auth = getCalendarAuth();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  if (!auth || !calendarId) {
+    console.warn("Google Calendar secrets not configured — skipping event creation.");
+    return null;
+  }
+
+  const times = parseAppointmentTime(date, time);
+  if (!times) { console.error("Could not parse appointment time:", time); return null; }
+
+  const clinicaLabel = getClinicaLabel(clinica);
+  const calendar = google.calendar({ version: "v3", auth });
+
+  const event = {
+    summary: `🦺 Cita: ${patientName || "Paciente"}`,
+    description: [
+      `👤 Paciente: ${patientName || "No especificado"}`,
+      `🪪 DUI: ${patientDui || "No especificado"}`,
+      `🏥 Clínica: ${clinicaLabel}`,
+      `📋 Motivo: ${reason || "No especificado"}`,
+      notas ? `📝 Notas: ${notas}` : "",
+      `🔑 ID Cita: ${appointmentId}`,
+    ].filter(Boolean).join("\n"),
+    location: clinicaLabel,
+    start: { dateTime: times.start, timeZone: "America/El_Salvador" },
+    end: { dateTime: times.end, timeZone: "America/El_Salvador" },
+    colorId: "2",  // sage/verde
+    reminders: {
+      useDefault: false,
+      overrides: [{ method: "popup", minutes: 30 }],
+    },
+  };
+
+  const res = await calendar.events.insert({ calendarId, resource: event });
+  console.log("Google Calendar event created:", res.data.htmlLink);
+  // Guarda el eventId en Firestore para poder editarlo/eliminarlo luego
+  await admin.firestore().collection("appointments").doc(appointmentId).update({
+    googleCalendarEventId: res.data.id,
+  });
+  return res.data.id;
+}
+
+async function updateCalendarEvent({ appointmentId, googleCalendarEventId, patientName, patientDui, date, time, clinica, reason, notas }) {
+  const auth = getCalendarAuth();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  if (!auth || !calendarId || !googleCalendarEventId) {
+    console.warn("Cannot update Google Calendar event — missing config or event ID.");
+    return;
+  }
+
+  const times = parseAppointmentTime(date, time);
+  if (!times) { console.error("Could not parse appointment time:", time); return; }
+
+  const clinicaLabel = getClinicaLabel(clinica);
+  const calendar = google.calendar({ version: "v3", auth });
+
+  const event = {
+    summary: `🦺 Cita: ${patientName || "Paciente"}`,
+    description: [
+      `👤 Paciente: ${patientName || "No especificado"}`,
+      `🪪 DUI: ${patientDui || "No especificado"}`,
+      `🏥 Clínica: ${clinicaLabel}`,
+      `📋 Motivo: ${reason || "No especificado"}`,
+      notas ? `📝 Notas: ${notas}` : "",
+      `🔑 ID Cita: ${appointmentId}`,
+    ].filter(Boolean).join("\n"),
+    location: clinicaLabel,
+    start: { dateTime: times.start, timeZone: "America/El_Salvador" },
+    end: { dateTime: times.end, timeZone: "America/El_Salvador" },
+    colorId: "5",  // banana/amarillo — indica modificado
+  };
+
+  await calendar.events.update({ calendarId, eventId: googleCalendarEventId, resource: event });
+  console.log("Google Calendar event updated:", googleCalendarEventId);
+}
+
+async function cancelCalendarEvent({ googleCalendarEventId }) {
+  const auth = getCalendarAuth();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  if (!auth || !calendarId || !googleCalendarEventId) {
+    console.warn("Cannot cancel Google Calendar event — missing config or event ID.");
+    return;
+  }
+  const calendar = google.calendar({ version: "v3", auth });
+  await calendar.events.delete({ calendarId, eventId: googleCalendarEventId });
+  console.log("Google Calendar event deleted:", googleCalendarEventId);
+}
+
 exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   {
     document: "appointments/{appointmentId}",
-    secrets: ["EMAIL_USER", "EMAIL_PASS", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM", "SECRETARY_WHATSAPP_TO"],
+    secrets: ["EMAIL_USER", "EMAIL_PASS", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM", "SECRETARY_WHATSAPP_TO", "GOOGLE_SERVICE_ACCOUNT_JSON", "GOOGLE_CALENDAR_ID"],
   },
   async (event) => {
     const appointment = event.data.data();
@@ -383,6 +509,7 @@ Clínica Dental Dr. César Vásquez
     try {
       await sendSecretaryWhatsApp({
         patientName,
+        patientDui: appointment.patientDui,
         date,
         time,
         clinica,
@@ -392,6 +519,22 @@ Clínica Dental Dr. César Vásquez
       console.error("Error sending WhatsApp to secretary:", waErr);
     }
 
+    // ── Evento en Google Calendar ─────────────────────────────
+    try {
+      await createCalendarEvent({
+        appointmentId,
+        patientName,
+        patientDui: appointment.patientDui,
+        date,
+        time,
+        clinica,
+        reason,
+        notas,
+      });
+    } catch (calErr) {
+      console.error("Error creating Google Calendar event:", calErr);
+    }
+
     return null;
   }
 );
@@ -399,7 +542,7 @@ Clínica Dental Dr. César Vásquez
 exports.sendAppointmentUpdateEmail = onDocumentUpdated(
   {
     document: "appointments/{appointmentId}",
-    secrets: ["EMAIL_USER", "EMAIL_PASS"],
+    secrets: ["EMAIL_USER", "EMAIL_PASS", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM", "SECRETARY_WHATSAPP_TO", "GOOGLE_SERVICE_ACCOUNT_JSON", "GOOGLE_CALENDAR_ID"],
   },
   async (event) => {
     const before = event.data.before.data();
@@ -574,6 +717,76 @@ Clínica Dental Dr. César Vásquez
       console.log(`Update email sent to ${userEmail} for appointment ${appointmentId}`);
     } catch (emailErr) {
       console.error("Error sending update email:", emailErr);
+    }
+
+    // ── Notificación WhatsApp a la secretaria ────────────────────
+    try {
+      const patientFullName = after.patientName || before.patientName || "No especificado";
+      const clinicaUpdated = getClinicaLabel(after.clinica);
+      const dateUpdated = formatDate(after.date);
+
+      const patientDui = after.patientDui || before.patientDui || "No especificado";
+      let waMessage;
+      if (isCancellation) {
+        waMessage =
+          `❌ *Cita cancelada*\n\n` +
+          `👤 Paciente: ${patientFullName}\n` +
+          `🪪 DUI: ${patientDui}\n` +
+          `📆 Fecha: ${dateUpdated}\n` +
+          `🕐 Hora: ${after.time}\n` +
+          `🏥 Clínica: ${clinicaUpdated}`;
+      } else {
+        const fieldLabels = { date: "fecha", time: "hora", clinica: "clínica", reason: "motivo", notas: "notas" };
+        const changedText = changedFields.map((f) => fieldLabels[f] || f).join(", ");
+        waMessage =
+          `✏️ *Cita modificada*\n\n` +
+          `👤 Paciente: ${patientFullName}\n` +
+          `🪪 DUI: ${patientDui}\n` +
+          `📆 Fecha: ${dateUpdated}\n` +
+          `🕐 Hora: ${after.time}\n` +
+          `🏥 Clínica: ${clinicaUpdated}\n` +
+          `🔄 Cambios: ${changedText}`;
+      }
+
+      const accountSid = process.env.TWILIO_ACCOUNT_SID;
+      const authToken = process.env.TWILIO_AUTH_TOKEN;
+      const fromNumber = process.env.TWILIO_WHATSAPP_FROM;
+      const toNumber = process.env.SECRETARY_WHATSAPP_TO;
+
+      if (accountSid && authToken && fromNumber && toNumber) {
+        const client = twilio(accountSid, authToken);
+        await client.messages.create({ from: fromNumber, to: toNumber, body: waMessage });
+        console.log(`WhatsApp update notification sent to secretary for appointment ${appointmentId}`);
+      } else {
+        console.warn("Twilio secrets not configured — skipping WhatsApp update notification.");
+      }
+    } catch (waErr) {
+      console.error("Error sending WhatsApp update to secretary:", waErr);
+    }
+
+    // ── Google Calendar: actualizar o cancelar evento ─────────────
+    try {
+      const googleCalendarEventId = after.googleCalendarEventId || before.googleCalendarEventId;
+      const patientFullName = after.patientName || before.patientName;
+      const patientDuiVal = after.patientDui || before.patientDui;
+
+      if (isCancellation) {
+        await cancelCalendarEvent({ googleCalendarEventId });
+      } else if (isEditedAppointment) {
+        await updateCalendarEvent({
+          appointmentId,
+          googleCalendarEventId,
+          patientName: patientFullName,
+          patientDui: patientDuiVal,
+          date: after.date,
+          time: after.time,
+          clinica: after.clinica,
+          reason: after.reason,
+          notas: after.notas,
+        });
+      }
+    } catch (calErr) {
+      console.error("Error updating/cancelling Google Calendar event:", calErr);
     }
 
     return null;
