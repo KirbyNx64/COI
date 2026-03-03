@@ -1,11 +1,12 @@
 import {
     createUserWithEmailAndPassword,
+    deleteUser,
     signInWithEmailAndPassword,
     signOut as firebaseSignOut,
     sendPasswordResetEmail,
-    sendEmailVerification,
     onAuthStateChanged
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 
@@ -17,37 +18,75 @@ import { auth, db } from '../firebaseConfig';
  * @returns {Promise<{user, error}>}
  */
 export const signUp = async (email, password, userData = {}) => {
+    let user = null;
+
     try {
         // Create user with email and password
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        user = userCredential.user;
 
         // Save user profile to Firestore
-        await setDoc(doc(db, 'users', user.uid), {
-            email: email,
-            nombres: userData.nombres || '',
-            apellidos: userData.apellidos || '',
-            fechaNacimiento: userData.fechaNacimiento || null,
-            dui: userData.dui || '',
-            genero: userData.genero || '',
-            direccion: userData.direccion || '',
-            telefono: userData.telefono || '',
-            emergenciaNombre: userData.emergenciaNombre || '',
-            emergenciaTelefono: userData.emergenciaTelefono || '',
-            emergenciaParentesco: userData.emergenciaParentesco || '',
-            tipoPaciente: userData.tipoPaciente || 'primera-vez',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        });
+        try {
+            await setDoc(doc(db, 'users', user.uid), {
+                email: email,
+                nombres: userData.nombres || '',
+                apellidos: userData.apellidos || '',
+                fechaNacimiento: userData.fechaNacimiento || null,
+                dui: userData.dui || '',
+                genero: userData.genero || '',
+                direccion: userData.direccion || '',
+                telefono: userData.telefono || '',
+                emergenciaNombre: userData.emergenciaNombre || '',
+                emergenciaTelefono: userData.emergenciaTelefono || '',
+                emergenciaParentesco: userData.emergenciaParentesco || '',
+                tipoPaciente: userData.tipoPaciente || 'primera-vez',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+        } catch (profileError) {
+            console.error('Error saving user profile:', profileError);
 
-        // Send email verification
-        console.log('Sending email verification to:', user.email);
-        await sendEmailVerification(user);
-        console.log('Email verification sent successfully');
+            try {
+                await deleteUser(user);
+            } catch (cleanupError) {
+                console.error('Error cleaning up auth user after profile failure:', cleanupError);
+            }
+
+            return { user: null, error: profileError };
+        }
+
+        // Enviar correo de verificación personalizado vía Cloud Function
+        console.log('Sending custom verification email to:', user.email);
+        try {
+            const functions = getFunctions();
+            const sendVerificationEmail = httpsCallable(functions, 'sendVerificationEmail');
+            await sendVerificationEmail({
+                email: user.email,
+                displayName: `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() || user.email,
+            });
+            console.log('Custom verification email sent successfully');
+        } catch (verificationError) {
+            // La cuenta/perfil ya fueron creados. No bloquear el registro por errores de envío.
+            console.error('Custom verification email failed, but account was created:', verificationError);
+        }
 
         return { user, error: null };
     } catch (error) {
         console.error('Sign up error:', error);
+
+        // Fallback: if Auth + Firestore profile were created, do not block registration UI
+        if (user) {
+            try {
+                const profileSnap = await getDoc(doc(db, 'users', user.uid));
+                if (profileSnap.exists()) {
+                    console.warn('Sign up completed but post-registration step failed:', error);
+                    return { user, error: null };
+                }
+            } catch (fallbackError) {
+                console.error('Error validating post-registration fallback:', fallbackError);
+            }
+        }
+
         return { user: null, error };
     }
 };

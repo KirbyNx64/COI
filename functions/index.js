@@ -1,4 +1,5 @@
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -525,5 +526,170 @@ Clínica Dental Dr. César Vásquez
     }
 
     return null;
+  }
+);
+
+// ──────────────────────────────────────────────────────────────
+// Callable Function: Genera el link de verificación de Firebase
+// y lo envía con correo personalizado de la clínica
+// ──────────────────────────────────────────────────────────────
+exports.sendVerificationEmail = onCall(
+  {
+    secrets: ["EMAIL_USER", "EMAIL_PASS"],
+  },
+  async (request) => {
+    const { email, displayName } = request.data;
+
+    if (!email) {
+      throw new HttpsError("invalid-argument", "Se requiere el correo electrónico.");
+    }
+
+    // Generar el link real de verificación de Firebase Auth
+    let verificationLink;
+    try {
+      verificationLink = await admin.auth().generateEmailVerificationLink(email, {
+        url: "https://coi-dr-cv.web.app/correo-verificado",
+      });
+    } catch (err) {
+      console.error("Error generando link de verificación:", err);
+      throw new HttpsError("internal", "No se pudo generar el link de verificación.");
+    }
+
+    const firstName = (displayName || "Paciente").split(" ")[0];
+
+    // ── HTML del correo de verificación ─────────────────────────
+    const htmlBody = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verifica tu Correo Electrónico</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7f6;font-family:'Segoe UI',Arial,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f7f6;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%); padding: 30px 20px; text-align: center;">
+              <div style="margin-bottom: 8px;">
+                <span style="font-size: 36px; line-height: 1;">🦷</span>
+              </div>
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2;">
+                Clínica Dr. César Vásquez
+              </h1>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 400; letter-spacing: 0.3px;">
+                Odontólogos forjando mejores sonrisas
+              </p>
+            </td>
+          </tr>
+
+          <!-- Cuerpo -->
+          <tr>
+            <td style="padding: 40px 40px 0;">
+              <h2 style="margin: 0 0 12px; font-size: 22px; color: #1a5276; font-weight: 700;">
+                Hola, ${firstName} 👋
+              </h2>
+              <p style="margin: 0 0 20px; font-size: 16px; color: #4a5568; line-height: 1.6;">
+                Gracias por registrarte en el portal de la Clínica Dental Dr. César Vásquez.
+                Solo falta un paso: <strong>verifica tu dirección de correo electrónico</strong>
+                para activar tu cuenta.
+              </p>
+              <p style="margin: 0; font-size: 15px; color: #4a5568; line-height: 1.6;">
+                Haz clic en el botón de abajo para confirmar tu correo:
+              </p>
+            </td>
+          </tr>
+
+          <!-- Botón CTA -->
+          <tr>
+            <td style="padding: 32px 40px; text-align: center;">
+              <a href="${verificationLink}"
+                 style="display:inline-block;background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 36px;border-radius:6px;letter-spacing:0.3px;">
+                ✉️ Verificar mi Correo
+              </a>
+            </td>
+          </tr>
+
+          <!-- Nota de seguridad -->
+          <tr>
+            <td style="padding: 0 40px 28px;">
+              <div style="background:#f0f9ff;border-left:4px solid #2980b9;padding:12px 16px;border-radius:0 6px 6px 0;">
+                <p style="margin:0;font-size:13px;color:#1a5276;line-height:1.5;">
+                  <strong>¿No creaste esta cuenta?</strong> Si no solicitaste el registro en nuestra plataforma,
+                  puedes ignorar este correo. El enlace expirará automáticamente.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Enlace alternativo -->
+          <tr>
+            <td style="padding: 0 40px 36px;">
+              <p style="margin:0;font-size:13px;color:#718096;line-height:1.6;">
+                Si el botón no funciona, copia y pega este enlace en tu navegador:<br/>
+                <a href="${verificationLink}" style="color:#2980b9;word-break:break-all;font-size:12px;">${verificationLink}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:30px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;color:#718096;line-height:1.6;text-transform:uppercase;letter-spacing:1px;">
+                Clínica Dental Dr. César Vásquez
+              </p>
+              <p style="margin:8px 0 0;font-size:11px;color:#a0aec0;">
+                Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+    `;
+
+    // ── Texto plano (fallback) ───────────────────────────────────
+    const textBody = `
+Hola ${firstName},
+
+Gracias por registrarte en la Clínica Dental Dr. César Vásquez.
+
+Verifica tu correo electrónico haciendo clic en el siguiente enlace:
+${verificationLink}
+
+Si no creaste esta cuenta, puedes ignorar este correo.
+
+Clínica Dental Dr. César Vásquez
+(Este correo fue enviado automáticamente por el sistema.)
+    `.trim();
+
+    // ── Enviar el correo ─────────────────────────────────────────
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: `"Clínica Dr. César Vásquez" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Verifica tu correo - Clínica Dental Dr. César Vásquez",
+      text: textBody,
+      html: htmlBody,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`Verification email sent to ${email}`);
+      return { success: true };
+    } catch (emailErr) {
+      console.error("Error sending verification email:", emailErr);
+      throw new HttpsError("internal", "No se pudo enviar el correo de verificación.");
+    }
   }
 );
