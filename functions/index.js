@@ -530,7 +530,26 @@ Clínica Dental Dr. César Vásquez
 );
 
 // ──────────────────────────────────────────────────────────────
-// Callable Function: Genera el link de verificación de Firebase
+// Callable Function: Verifica si un DUI ya está registrado
+// Usa Admin SDK → bypasea las Firestore rules (sin auth requerida)
+// ──────────────────────────────────────────────────────────────
+exports.checkDuiAvailability = onCall(async (request) => {
+  const { dui } = request.data;
+
+  if (!dui) {
+    throw new HttpsError("invalid-argument", "Se requiere el DUI.");
+  }
+
+  const snapshot = await admin.firestore()
+    .collection("users")
+    .where("dui", "==", dui.trim())
+    .limit(1)
+    .get();
+
+  return { available: snapshot.empty };
+});
+
+
 // y lo envía con correo personalizado de la clínica
 // ──────────────────────────────────────────────────────────────
 exports.sendVerificationEmail = onCall(

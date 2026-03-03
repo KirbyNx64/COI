@@ -21,6 +21,22 @@ export const signUp = async (email, password, userData = {}) => {
     let user = null;
 
     try {
+        // Verificar si el DUI ya está registrado via Cloud Function (Admin SDK, sin restricciones de rules)
+        if (userData.dui) {
+            const functions = getFunctions();
+            const checkDui = httpsCallable(functions, 'checkDuiAvailability');
+            const { data } = await checkDui({ dui: userData.dui });
+            if (!data.available) {
+                return {
+                    user: null,
+                    error: {
+                        code: 'auth/dui-already-in-use',
+                        message: 'Este DUI ya está registrado.'
+                    }
+                };
+            }
+        }
+
         // Create user with email and password
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         user = userCredential.user;

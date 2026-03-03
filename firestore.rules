@@ -27,6 +27,7 @@ service cloud.firestore {
       allow read, create, update: if isOwner(userId) || isStaff();
       allow delete: if isAdmin(); // Solo el administrador puede borrar pacientes
     }
+
     
     // Colección de Personal (Staff)
     match /staff/{staffId} {

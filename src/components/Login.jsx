@@ -203,6 +203,8 @@ const Login = ({ onLogin }) => {
                         sessionStorage.removeItem('justRegistered');
                         if (signUpError.code === 'auth/email-already-in-use') {
                             setError('Este correo ya está registrado.');
+                        } else if (signUpError.code === 'auth/dui-already-in-use') {
+                            setFieldErrors({ dui: 'Este DUI ya está registrado.' });
                         } else {
                             setError(signUpError.message || 'Error al registrar usuario.');
                         }
