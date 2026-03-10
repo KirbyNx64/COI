@@ -23,6 +23,10 @@
     animation: modalScaleIn 0.2s ease-out;
 }
 
+.confirmation-modal.has-details {
+    max-width: 520px;
+}
+
 @keyframes simpleFadeIn {
     from {
         opacity: 0;
@@ -111,6 +115,81 @@
     margin: 0 0 2rem 0;
 }
 
+.confirmation-details {
+    text-align: left;
+    margin-bottom: 1.4rem;
+}
+
+.confirmation-lead {
+    font-size: 1rem;
+    color: #526581;
+    line-height: 1.5;
+    margin: 0 0 1rem 0;
+}
+
+.confirmation-file-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 0.9rem;
+}
+
+.file-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.file-name {
+    display: block;
+    font-size: 0.95rem;
+    color: #1e293b;
+    font-weight: 600;
+    word-break: break-all;
+}
+
+.confirmation-counts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 0.9rem;
+}
+
+.count-chip {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+}
+
+.count-chip-label {
+    display: block;
+    color: #9a3412;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.2rem;
+}
+
+.count-chip-value {
+    color: #7c2d12;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.confirmation-footer-note {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
 .confirmation-actions {
     display: flex;
     gap: 1rem;
@@ -175,6 +254,10 @@
     .confirmation-body p {
         margin-bottom: 2rem;
         font-size: 0.95rem;
+    }
+
+    .confirmation-counts {
+        grid-template-columns: 1fr;
     }
 
     .confirmation-actions {

@@ -269,6 +269,12 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
       return null;
     }
 
+    // Evita notificaciones masivas durante restauraciones/importaciones de respaldos
+    if (appointment.importedFromBackup) {
+      console.log(`Appointment ${appointmentId} was imported from backup, skipping notifications.`);
+      return null;
+    }
+
     // Obtener el correo del usuario desde Firebase Auth
     let userEmail = null;
     try {
@@ -811,6 +817,76 @@ exports.checkDuiAvailability = onCall(async (request) => {
     .get();
 
   return { available: snapshot.empty };
+});
+
+exports.deletePatientAccount = onCall(async (request) => {
+  const requesterUid = request.auth?.uid;
+  if (!requesterUid) {
+    throw new HttpsError("unauthenticated", "Debes iniciar sesión para realizar esta acción.");
+  }
+
+  const patientId = request.data?.patientId;
+  if (!patientId || typeof patientId !== "string") {
+    throw new HttpsError("invalid-argument", "Se requiere un ID de paciente válido.");
+  }
+
+  const db = admin.firestore();
+  const requesterStaffDoc = await db.collection("staff").doc(requesterUid).get();
+
+  if (!requesterStaffDoc.exists) {
+    throw new HttpsError("permission-denied", "No tienes permisos para eliminar pacientes.");
+  }
+
+  const requesterRole = requesterStaffDoc.data()?.role;
+  if (!["admin", "doctor"].includes(requesterRole)) {
+    throw new HttpsError("permission-denied", "Rol sin permisos para eliminar pacientes.");
+  }
+
+  const deleteRefsInChunks = async (docRefs) => {
+    const chunkSize = 450;
+    for (let i = 0; i < docRefs.length; i += chunkSize) {
+      const chunk = docRefs.slice(i, i + chunkSize);
+      const batch = db.batch();
+      chunk.forEach((ref) => batch.delete(ref));
+      await batch.commit();
+    }
+  };
+
+  try {
+    const [appointmentsSnapshot, notificationsSnapshot] = await Promise.all([
+      db.collection("appointments").where("userId", "==", patientId).get(),
+      db.collection("notifications").where("userId", "==", patientId).get(),
+    ]);
+
+    const refsToDelete = [
+      ...appointmentsSnapshot.docs.map((doc) => doc.ref),
+      ...notificationsSnapshot.docs.map((doc) => doc.ref),
+      db.collection("users").doc(patientId),
+    ];
+
+    if (refsToDelete.length > 0) {
+      await deleteRefsInChunks(refsToDelete);
+    }
+
+    try {
+      await admin.auth().deleteUser(patientId);
+    } catch (authError) {
+      if (authError.code !== "auth/user-not-found") {
+        throw authError;
+      }
+    }
+
+    return {
+      success: true,
+      deleted: {
+        appointments: appointmentsSnapshot.size,
+        notifications: notificationsSnapshot.size,
+      },
+    };
+  } catch (error) {
+    console.error("Error deleting patient account:", error);
+    throw new HttpsError("internal", "No se pudo eliminar el perfil del paciente.");
+  }
 });
 
 

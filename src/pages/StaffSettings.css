@@ -40,6 +40,12 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -189,6 +195,91 @@
     color: #dc2626;
     border-radius: 8px;
     text-align: center;
+}
+
+.backup-section .section-header {
+    margin-bottom: 0.75rem;
+}
+
+.backup-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.backup-description {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.backup-warning {
+    margin: 0.5rem 0 0 0;
+    color: #b45309;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.backup-db-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #1e3a5f;
+    color: white;
+    border: none;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.backup-db-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(30, 58, 95, 0.25);
+}
+
+.backup-db-btn:disabled,
+.import-db-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.import-db-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    color: #1e3a5f;
+    border: 1px solid #1e3a5f;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.import-db-btn:hover:not(:disabled) {
+    background: #f8fafc;
+    transform: translateY(-1px);
+}
+
+.backup-status {
+    margin: 0.75rem 0 0 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.backup-status-error {
+    color: #dc2626;
+}
+
+.backup-status-success {
+    color: #059669;
+}
+
+.backup-file-input {
+    display: none;
 }
 
 
@@ -495,5 +586,16 @@
         width: 100%;
         background: #2c5282;
         /* Updated color */
+    }
+
+    .backup-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .backup-db-btn,
+    .import-db-btn {
+        width: 100%;
+        justify-content: center;
     }
 }

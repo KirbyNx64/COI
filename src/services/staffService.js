@@ -4,7 +4,8 @@ import {
     signOut as firebaseSignOut,
     sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, orderBy, startAfter, limit, limitToLast, endBefore } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, orderBy, startAfter, limit, limitToLast, endBefore, writeBatch } from 'firebase/firestore';
 import { auth, db, secondaryAuth } from '../firebaseConfig';
 
 /**
@@ -486,5 +487,119 @@ export const getAllStaffMembers = async () => {
     } catch (error) {
         console.error('Error getting all staff members:', error);
         return { staff: [], error };
+    }
+};
+
+/**
+ * Create a full Firestore backup from main app collections.
+ * @returns {Promise<{backup: object|null, error: any}>}
+ */
+export const generateDatabaseBackup = async () => {
+    const collectionsToBackup = ['staff', 'users', 'appointments', 'notifications'];
+
+    try {
+        const backup = {
+            metadata: {
+                generatedAt: new Date().toISOString(),
+                collections: collectionsToBackup
+            },
+            collections: {}
+        };
+
+        for (const collectionName of collectionsToBackup) {
+            const querySnapshot = await getDocs(collection(db, collectionName));
+            backup.collections[collectionName] = querySnapshot.docs.map((docSnapshot) => ({
+                id: docSnapshot.id,
+                ...docSnapshot.data()
+            }));
+        }
+
+        return { backup, error: null };
+    } catch (error) {
+        console.error('Error generating database backup:', error);
+        return { backup: null, error };
+    }
+};
+
+/**
+ * Import a full Firestore backup replacing current data in target collections.
+ * @param {object} backupData
+ * @returns {Promise<{success: boolean, error: any}>}
+ */
+export const importDatabaseBackup = async (backupData) => {
+    const collectionsToImport = ['staff', 'users', 'appointments', 'notifications'];
+    const BATCH_LIMIT = 450;
+
+    const commitBatchOperations = async (operations) => {
+        for (let index = 0; index < operations.length; index += BATCH_LIMIT) {
+            const chunk = operations.slice(index, index + BATCH_LIMIT);
+            const batch = writeBatch(db);
+
+            chunk.forEach((operation) => {
+                if (operation.type === 'delete') {
+                    batch.delete(operation.ref);
+                } else if (operation.type === 'set') {
+                    batch.set(operation.ref, operation.data);
+                }
+            });
+
+            await batch.commit();
+        }
+    };
+
+    try {
+        for (const collectionName of collectionsToImport) {
+            const currentDocsSnapshot = await getDocs(collection(db, collectionName));
+            const deleteOperations = currentDocsSnapshot.docs.map((docSnapshot) => ({
+                type: 'delete',
+                ref: doc(db, collectionName, docSnapshot.id)
+            }));
+
+            if (deleteOperations.length > 0) {
+                await commitBatchOperations(deleteOperations);
+            }
+
+            const importedDocs = backupData?.collections?.[collectionName] || [];
+            const setOperations = importedDocs
+                .filter((item) => item && typeof item === 'object' && typeof item.id === 'string' && item.id.trim())
+                .map((item) => {
+                    const { id, ...data } = item;
+                    const dataToStore = collectionName === 'appointments'
+                        ? { ...data, importedFromBackup: true }
+                        : data;
+
+                    return {
+                        type: 'set',
+                        ref: doc(db, collectionName, id),
+                        data: dataToStore
+                    };
+                });
+
+            if (setOperations.length > 0) {
+                await commitBatchOperations(setOperations);
+            }
+        }
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error('Error importing database backup:', error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * Delete patient profile from Firestore + Firebase Auth via secure Cloud Function.
+ * @param {string} patientId
+ * @returns {Promise<{success: boolean, error: any}>}
+ */
+export const deletePatientProfile = async (patientId) => {
+    try {
+        const functions = getFunctions();
+        const deletePatientAccount = httpsCallable(functions, 'deletePatientAccount');
+        await deletePatientAccount({ patientId });
+        return { success: true, error: null };
+    } catch (error) {
+        console.error('Error deleting patient profile:', error);
+        return { success: false, error };
     }
 };

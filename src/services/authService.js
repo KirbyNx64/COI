@@ -139,7 +139,7 @@ export const signIn = async (email, password) => {
                 user: null,
                 error: {
                     code: 'auth/account-inactive',
-                    message: 'Tu cuenta ha sido desactivada. Por favor contacta al administrador.'
+                    message: 'Tu cuenta ha sido desactivada. Por favor contacta con la clínica por WhatsApp: +503 6987 7192.'
                 }
             };
         }

@@ -7,6 +7,7 @@ const ConfirmationModal = ({
     onConfirm,
     title,
     message,
+    details = null,
     confirmText = 'Confirmar',
     cancelText = 'Cancelar',
     type = 'danger' // 'danger', 'info', 'warning'
@@ -15,7 +16,7 @@ const ConfirmationModal = ({
 
     return (
         <div className="confirmation-overlay" onClick={onClose}>
-            <div className={`confirmation-modal ${type}`} onClick={(e) => e.stopPropagation()}>
+            <div className={`confirmation-modal ${type} ${details ? 'has-details' : ''}`} onClick={(e) => e.stopPropagation()}>
                 <div className="confirmation-header">
                     <div className="icon-container">
                         {type === 'danger' && (
@@ -36,7 +37,30 @@ const ConfirmationModal = ({
                     <h2>{title}</h2>
                 </div>
                 <div className="confirmation-body">
-                    <p>{message}</p>
+                    {details ? (
+                        <div className="confirmation-details">
+                            <p className="confirmation-lead">{message}</p>
+                            {details.fileName && (
+                                <div className="confirmation-file-card">
+                                    <span className="file-label">Archivo seleccionado</span>
+                                    <span className="file-name">{details.fileName}</span>
+                                </div>
+                            )}
+                            {Array.isArray(details.counts) && details.counts.length > 0 && (
+                                <div className="confirmation-counts">
+                                    {details.counts.map((item) => (
+                                        <div className="count-chip" key={item.label}>
+                                            <span className="count-chip-label">{item.label}</span>
+                                            <span className="count-chip-value">{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {details.footer && <p className="confirmation-footer-note">{details.footer}</p>}
+                        </div>
+                    ) : (
+                        <p>{message}</p>
+                    )}
                 </div>
                 <div className="confirmation-actions">
                     <button className="confirm-btn" onClick={onConfirm}>

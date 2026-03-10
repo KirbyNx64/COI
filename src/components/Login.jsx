@@ -95,7 +95,7 @@ const Login = ({ onLogin }) => {
                     } else if (signInError.code === 'auth/invalid-credential') {
                         setError('Correo o contraseña incorrectos.');
                     } else if (signInError.code === 'auth/account-inactive') {
-                        setError(signInError.message || 'Tu cuenta ha sido desactivada. Por favor contacta al administrador.');
+                        setError(signInError.message || 'Tu cuenta ha sido desactivada. Por favor contacta con la clínica por WhatsApp: +503 6987 7192.');
                     } else {
                         setError(signInError.message || 'Error al iniciar sesión.');
                     }

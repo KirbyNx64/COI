@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { getAllStaffMembers, updateStaffProfile, createStaffProfile } from '../services/staffService';
+import React, { useState, useEffect, useRef } from 'react';
+import { getAllStaffMembers, updateStaffProfile, createStaffProfile, generateDatabaseBackup, importDatabaseBackup } from '../services/staffService';
 import { uploadProfilePhoto } from '../services/authService';
 import { compressImage } from '../utils/imageUtils';
 import StaffEditModal from '../components/Staff/StaffEditModal';
@@ -26,6 +26,13 @@ const StaffSettings = () => {
     // Confirmation Modal state
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmAction, setConfirmAction] = useState(null);
+    const [isBackingUp, setIsBackingUp] = useState(false);
+    const [backupError, setBackupError] = useState('');
+    const [backupSuccess, setBackupSuccess] = useState('');
+    const [isImporting, setIsImporting] = useState(false);
+    const [importError, setImportError] = useState('');
+    const [importSuccess, setImportSuccess] = useState('');
+    const backupFileInputRef = useRef(null);
 
     useEffect(() => {
         loadStaff();
@@ -183,6 +190,149 @@ const StaffSettings = () => {
         setShowConfirmModal(true);
     };
 
+    const handleDatabaseBackup = async () => {
+        setIsBackingUp(true);
+        setBackupError('');
+        setBackupSuccess('');
+        setImportError('');
+        setImportSuccess('');
+
+        const { backup, error: backupLoadError } = await generateDatabaseBackup();
+
+        if (backupLoadError || !backup) {
+            setBackupError('No se pudo generar el respaldo. Verifica permisos e inténtalo de nuevo.');
+            setIsBackingUp(false);
+            return;
+        }
+
+        try {
+            const dateForFile = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `respaldo-bd-${dateForFile}.json`;
+            const fileContent = JSON.stringify(backup, null, 2);
+            const blob = new Blob([fileContent], { type: 'application/json' });
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+
+            link.href = downloadUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+
+            setBackupSuccess('Respaldo generado y descargado correctamente.');
+        } catch (downloadError) {
+            console.error('Backup download error:', downloadError);
+            setBackupError('El respaldo se generó, pero falló la descarga del archivo.');
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
+
+    const handleOpenImportFilePicker = () => {
+        setImportError('');
+        setImportSuccess('');
+        if (backupFileInputRef.current) {
+            backupFileInputRef.current.click();
+        }
+    };
+
+    const validateBackupStructure = (backupData) => {
+        if (!backupData || typeof backupData !== 'object') {
+            return 'El archivo no contiene un JSON válido de respaldo.';
+        }
+
+        if (!backupData.collections || typeof backupData.collections !== 'object') {
+            return 'El archivo no incluye la sección "collections".';
+        }
+
+        const requiredCollections = ['staff', 'users', 'appointments', 'notifications'];
+        for (const collectionName of requiredCollections) {
+            const records = backupData.collections[collectionName];
+            if (!Array.isArray(records)) {
+                return `La colección "${collectionName}" es inválida o no existe en el respaldo.`;
+            }
+
+            const hasInvalidRecord = records.some((item) => !item || typeof item !== 'object' || typeof item.id !== 'string' || !item.id.trim());
+            if (hasInvalidRecord) {
+                return `La colección "${collectionName}" contiene registros sin "id" válido.`;
+            }
+        }
+
+        return null;
+    };
+
+    const handleImportBackup = async (backupData) => {
+        setShowConfirmModal(false);
+        setIsImporting(true);
+        setImportError('');
+        setImportSuccess('');
+        setBackupError('');
+        setBackupSuccess('');
+
+        const { success, error: importLoadError } = await importDatabaseBackup(backupData);
+
+        if (!success || importLoadError) {
+            console.error('Import error:', importLoadError);
+            setImportError('No se pudo importar el respaldo. Verifica permisos e inténtalo de nuevo.');
+            setIsImporting(false);
+            return;
+        }
+
+        await loadStaff();
+        setImportSuccess('Respaldo importado correctamente. Los datos actuales fueron reemplazados.');
+        setIsImporting(false);
+    };
+
+    const handleBackupFileSelected = async (event) => {
+        const selectedFile = event.target.files?.[0];
+        event.target.value = '';
+
+        if (!selectedFile) return;
+
+        try {
+            const fileText = await selectedFile.text();
+            const backupData = JSON.parse(fileText);
+            const validationError = validateBackupStructure(backupData);
+
+            if (validationError) {
+                setImportError(validationError);
+                return;
+            }
+
+            const collectionLabels = {
+                staff: 'personal',
+                users: 'pacientes',
+                appointments: 'citas',
+                notifications: 'notificaciones'
+            };
+
+            const counts = ['staff', 'users', 'appointments', 'notifications']
+                .map((collectionName) => ({
+                    label: collectionLabels[collectionName] || collectionName,
+                    value: backupData.collections[collectionName].length
+                }));
+
+            setConfirmAction({
+                title: 'Importar Respaldo',
+                message: 'Advertencia: esta importación reemplazará todos los datos actuales del sistema.',
+                details: {
+                    fileName: selectedFile.name,
+                    counts,
+                    footer: '¿Deseas continuar con la importación?'
+                },
+                confirmText: 'Sí, importar y reemplazar',
+                cancelText: 'Cancelar',
+                type: 'warning',
+                onConfirm: () => handleImportBackup(backupData)
+            });
+            setShowConfirmModal(true);
+        } catch (error) {
+            console.error('Invalid backup file:', error);
+            setImportError('El archivo seleccionado no es un JSON de respaldo válido.');
+        }
+    };
+
     return (
         <div className="settings-container">
             <header className="settings-header">
@@ -277,6 +427,56 @@ const StaffSettings = () => {
                         </div>
                     )}
                 </section>
+
+                <section className="settings-section backup-section">
+                    <div className="section-header">
+                        <h2>Respaldo de Base de Datos</h2>
+                        <div className="backup-actions">
+                            <button
+                                className="backup-db-btn"
+                                onClick={handleDatabaseBackup}
+                                disabled={isBackingUp || isImporting}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                {isBackingUp ? 'Generando respaldo...' : 'Respaldar toda la base de datos'}
+                            </button>
+                            <button
+                                className="import-db-btn"
+                                onClick={handleOpenImportFilePicker}
+                                disabled={isBackingUp || isImporting}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                {isImporting ? 'Importando respaldo...' : 'Importar respaldo'}
+                            </button>
+                        </div>
+                    </div>
+                    <p className="backup-description">
+                        Descarga un archivo JSON con toda la información de pacientes, personal, citas y notificaciones.
+                    </p>
+                    <p className="backup-warning">
+                        Advertencia: al importar un respaldo se reemplazan los datos actuales del sistema.
+                    </p>
+                    {backupError && <p className="backup-status backup-status-error">{backupError}</p>}
+                    {backupSuccess && <p className="backup-status backup-status-success">{backupSuccess}</p>}
+                    {importError && <p className="backup-status backup-status-error">{importError}</p>}
+                    {importSuccess && <p className="backup-status backup-status-success">{importSuccess}</p>}
+
+                    <input
+                        ref={backupFileInputRef}
+                        type="file"
+                        accept="application/json,.json"
+                        onChange={handleBackupFileSelected}
+                        className="backup-file-input"
+                    />
+                </section>
             </div>
 
             <StaffEditModal
@@ -307,7 +507,10 @@ const StaffSettings = () => {
                 onConfirm={confirmAction?.onConfirm}
                 title={confirmAction?.title}
                 message={confirmAction?.message}
-                confirmText={confirmAction?.title}
+                details={confirmAction?.details}
+                confirmText={confirmAction?.confirmText || confirmAction?.title}
+                cancelText={confirmAction?.cancelText}
+                type={confirmAction?.type}
             />
         </div>
     );

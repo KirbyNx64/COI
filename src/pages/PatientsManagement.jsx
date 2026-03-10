@@ -1,11 +1,12 @@
 import { useEffect, useReducer, useMemo, useState } from 'react';
-import { updatePatientData, createPatientWithTempPassword, getPatientHistory, getPatientsByDui, getPatientsPaginated, getAllPatients } from '../services/staffService';
+import { updatePatientData, createPatientWithTempPassword, getPatientHistory, getPatientsByDui, getPatientsPaginated, getAllPatients, deletePatientProfile } from '../services/staffService';
 import StaffAppointmentForm from '../components/StaffAppointmentForm';
 import PatientTable from '../components/Patients/PatientTable';
 import PatientDetailModal from '../components/Patients/PatientDetailModal';
 import NewPatientModal from '../components/Patients/NewPatientModal';
 import MedicalHistoryModal from '../components/Patients/MedicalHistoryModal';
 import SuccessModal from '../components/Patients/SuccessModal';
+import ConfirmationModal from '../components/Modals/ConfirmationModal';
 import './PatientsManagement.css';
 
 const initialState = {
@@ -19,6 +20,7 @@ const initialState = {
     isEditMode: false,
     editedPatient: null,
     isSaving: false,
+    isDeleting: false,
     saveError: null,
     copiedUid: false,
     // Appointment Modal
@@ -66,6 +68,7 @@ function reducer(state, action) {
                 selectedPatient: action.payload,
                 editedPatient: { ...action.payload },
                 isEditMode: false,
+                isDeleting: false,
                 saveError: null
             };
         case 'CLOSE_DETAIL':
@@ -75,6 +78,7 @@ function reducer(state, action) {
                 selectedPatient: null,
                 editedPatient: null,
                 isEditMode: false,
+                isDeleting: false,
                 saveError: null
             };
         case 'TOGGLE_EDIT':
@@ -86,8 +90,12 @@ function reducer(state, action) {
             };
         case 'SET_SAVING':
             return { ...state, isSaving: action.payload };
+        case 'SET_DELETING':
+            return { ...state, isDeleting: action.payload };
         case 'SET_SAVE_ERROR':
             return { ...state, saveError: action.payload, isSaving: false };
+        case 'CLEAR_SAVE_ERROR':
+            return { ...state, saveError: null };
         case 'SET_COPIED':
             return { ...state, copiedUid: action.payload };
         // Appointment Modal Actions
@@ -149,12 +157,15 @@ const PatientsManagement = () => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const {
         patients, searchTerm, isLoading, currentPage,
-        showDetailModal, selectedPatient, isEditMode, editedPatient, isSaving, saveError, copiedUid,
+        showDetailModal, selectedPatient, isEditMode, editedPatient, isSaving, isDeleting, saveError, copiedUid,
         showAppointmentModal, selectedPatientForAppointment,
         showSuccessModal,
         showNewPatientModal, isCreatingPatient, createError, newPatientData,
         showHistoryModal, patientHistory, isLoadingHistory
     } = state;
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+    const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+    const [statusAction, setStatusAction] = useState(null);
 
     // DUI search state
     const [duiInput, setDuiInput] = useState('');
@@ -273,6 +284,85 @@ const PatientsManagement = () => {
         dispatch({ type: 'SET_SAVING', payload: false });
     };
 
+    const handleRequestDeletePatient = () => {
+        setShowDeleteConfirmModal(true);
+    };
+
+    const handleRequestTogglePatientStatus = () => {
+        const currentStatus = editedPatient?.status || selectedPatient?.status || 'active';
+        const isInactive = currentStatus === 'inactive';
+        const nextStatus = isInactive ? 'active' : 'inactive';
+
+        setStatusAction({
+            nextStatus,
+            title: isInactive ? 'Activar Perfil' : 'Desactivar Perfil',
+            message: isInactive
+                ? 'El paciente podrá iniciar sesión nuevamente en el portal. ¿Deseas continuar?'
+                : 'El paciente no podrá iniciar sesión mientras su perfil esté desactivado. ¿Deseas continuar?',
+            confirmText: isInactive ? 'Sí, activar perfil' : 'Sí, desactivar perfil',
+            type: 'warning'
+        });
+        setShowStatusConfirmModal(true);
+    };
+
+    const handleConfirmTogglePatientStatus = async () => {
+        if (!statusAction?.nextStatus || !selectedPatient?.id) return;
+
+        dispatch({ type: 'SET_SAVING', payload: true });
+        dispatch({ type: 'CLEAR_SAVE_ERROR' });
+
+        const { error } = await updatePatientData(selectedPatient.id, { status: statusAction.nextStatus });
+
+        if (error) {
+            console.error('Error updating patient status:', error);
+            dispatch({ type: 'SET_SAVE_ERROR', payload: 'No se pudo actualizar el estado del perfil.' });
+            dispatch({ type: 'SET_SAVING', payload: false });
+            setShowStatusConfirmModal(false);
+            setStatusAction(null);
+            return;
+        }
+
+        const { patients } = await getAllPatients();
+        const updatedPatient = patients?.find((p) => p.id === selectedPatient.id);
+        dispatch({ type: 'REFRESH_LIST', patients: patients || [], selectedPatient: updatedPatient });
+
+        dispatch({ type: 'SET_SAVING', payload: false });
+        setShowStatusConfirmModal(false);
+        setStatusAction(null);
+    };
+
+    const handleConfirmDeletePatient = async () => {
+        if (isDeleting || !selectedPatient?.id) return;
+
+        dispatch({ type: 'SET_DELETING', payload: true });
+        dispatch({ type: 'SET_SAVING', payload: true });
+        dispatch({ type: 'CLEAR_SAVE_ERROR' });
+
+        const { success, error } = await deletePatientProfile(selectedPatient.id);
+
+        if (!success || error) {
+            console.error('Error deleting patient profile:', error);
+            dispatch({ type: 'SET_SAVE_ERROR', payload: 'No se pudo eliminar el perfil del paciente.' });
+            dispatch({ type: 'SET_DELETING', payload: false });
+            dispatch({ type: 'SET_SAVING', payload: false });
+            setShowDeleteConfirmModal(false);
+            return;
+        }
+
+        setShowDeleteConfirmModal(false);
+        dispatch({ type: 'CLOSE_DETAIL' });
+
+        if (isDuiMode && duiInput.trim()) {
+            await handleDuiSearch();
+        } else {
+            await loadPage();
+            setPageNum(1);
+        }
+
+        dispatch({ type: 'SET_DELETING', payload: false });
+        dispatch({ type: 'SET_SAVING', payload: false });
+    };
+
     const handleCopyUid = (uid) => {
         navigator.clipboard.writeText(uid);
         dispatch({ type: 'SET_COPIED', payload: true });
@@ -346,7 +436,7 @@ const PatientsManagement = () => {
 
     // Block body scroll when any modal is open
     useEffect(() => {
-        if (showDetailModal || showAppointmentModal || showSuccessModal || showNewPatientModal || showHistoryModal) {
+        if (showDetailModal || showAppointmentModal || showSuccessModal || showNewPatientModal || showHistoryModal || showDeleteConfirmModal || showStatusConfirmModal) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -355,7 +445,7 @@ const PatientsManagement = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [showDetailModal, showAppointmentModal, showSuccessModal, showNewPatientModal, showHistoryModal]);
+    }, [showDetailModal, showAppointmentModal, showSuccessModal, showNewPatientModal, showHistoryModal, showDeleteConfirmModal, showStatusConfirmModal]);
 
     return (
         <div className="patients-management">
@@ -459,11 +549,15 @@ const PatientsManagement = () => {
                 onCancelEdit={() => dispatch({ type: 'TOGGLE_EDIT' })}
                 onFieldChange={handleEditFieldChange}
                 onSaveChanges={handleSaveChanges}
+                onDeleteProfile={handleRequestDeletePatient}
+                onToggleStatus={handleRequestTogglePatientStatus}
                 onScheduleAppointment={(p) => dispatch({ type: 'OPEN_APPOINTMENT', payload: p })}
                 onViewHistory={handleViewHistory}
                 formatDate={formatDate}
                 handleCopyUid={handleCopyUid}
                 copiedUid={copiedUid}
+                isDeleting={isDeleting}
+                isInactive={(editedPatient?.status || selectedPatient?.status) === 'inactive'}
             />
 
             <NewPatientModal
@@ -491,6 +585,28 @@ const PatientsManagement = () => {
                 onClose={() => dispatch({ type: 'TOGGLE_SUCCESS', payload: false })}
                 message="Paciente agregado exitosamente"
                 submessage="Se ha enviado un correo electrónico al paciente para que establezca su contraseña."
+            />
+
+            <ConfirmationModal
+                isOpen={showDeleteConfirmModal}
+                onClose={() => !isDeleting && setShowDeleteConfirmModal(false)}
+                onConfirm={handleConfirmDeletePatient}
+                title="Eliminar Perfil de Paciente"
+                message="Esta acción eliminará permanentemente el perfil del paciente, sus citas y su cuenta de autenticación. No se puede deshacer."
+                confirmText={isDeleting ? 'Eliminando...' : 'Sí, eliminar perfil'}
+                cancelText="Cancelar"
+                type="danger"
+            />
+
+            <ConfirmationModal
+                isOpen={showStatusConfirmModal}
+                onClose={() => !isSaving && setShowStatusConfirmModal(false)}
+                onConfirm={handleConfirmTogglePatientStatus}
+                title={statusAction?.title}
+                message={statusAction?.message}
+                confirmText={isSaving ? 'Guardando...' : statusAction?.confirmText}
+                cancelText="Cancelar"
+                type={statusAction?.type || 'warning'}
             />
 
             {/* Appointment Modal — Programar Cita */}
